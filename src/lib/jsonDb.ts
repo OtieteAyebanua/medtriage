@@ -12,9 +12,22 @@ let symptoms = JSON.parse(fs.readFileSync(path.join(dataDir, 'symptoms.json'), '
 let recordSymptoms = JSON.parse(fs.readFileSync(path.join(dataDir, 'recordSymptoms.json'), 'utf-8'));
 let sessions: any[] = []; // Sessions are purely in-memory for this mock
 
-function matchWhere(item: any, where: any) {
+function matchWhere(item: any, where: any): boolean {
   if (!where) return true;
   for (const key of Object.keys(where)) {
+    if (key === 'OR' && Array.isArray(where[key])) {
+      const orConditions = where[key];
+      let orMatch = false;
+      for (const cond of orConditions) {
+        if (matchWhere(item, cond)) {
+          orMatch = true;
+          break;
+        }
+      }
+      if (!orMatch) return false;
+      continue;
+    }
+
     const condition = where[key];
     if (condition && typeof condition === 'object' && !Array.isArray(condition) && !(condition instanceof Date)) {
       if (condition.in) {
