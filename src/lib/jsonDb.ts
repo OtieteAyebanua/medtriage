@@ -50,9 +50,14 @@ function matchWhere(item: any, where: any): boolean {
       if (condition.in) {
         if (!condition.in.includes(item[key])) return false;
       } else if (condition.gte !== undefined || condition.lte !== undefined || condition.lt !== undefined) {
-        if (condition.gte !== undefined && item[key] < condition.gte) return false;
-        if (condition.lte !== undefined && item[key] > condition.lte) return false;
-        if (condition.lt !== undefined && item[key] >= condition.lt) return false;
+        const itemVal = item[key] instanceof Date ? item[key].getTime() : (typeof item[key] === 'string' && !isNaN(Date.parse(item[key])) ? Date.parse(item[key]) : item[key]);
+        const gteVal = condition.gte instanceof Date ? condition.gte.getTime() : condition.gte;
+        const lteVal = condition.lte instanceof Date ? condition.lte.getTime() : condition.lte;
+        const ltVal = condition.lt instanceof Date ? condition.lt.getTime() : condition.lt;
+
+        if (gteVal !== undefined && itemVal < gteVal) return false;
+        if (lteVal !== undefined && itemVal > lteVal) return false;
+        if (ltVal !== undefined && itemVal >= ltVal) return false;
       }
     } else {
       if (item[key] !== condition) return false;
@@ -101,16 +106,16 @@ function createModel(dataArray: any[], idField: string, modelName: string) {
     findMany: async (args: any = {}) => {
       let res = dataArray.filter(item => matchWhere(item, args.where));
       if (args.orderBy) {
-         const keys = Object.keys(args.orderBy);
-         if (keys.length > 0) {
-             const key = keys[0];
-             const dir = args.orderBy[key];
-             res.sort((a, b) => {
-                 if (a[key] < b[key]) return dir === 'asc' ? -1 : 1;
-                 if (a[key] > b[key]) return dir === 'asc' ? 1 : -1;
-                 return 0;
-             });
-         }
+        const orderBys = Array.isArray(args.orderBy) ? args.orderBy : [args.orderBy];
+        res.sort((a, b) => {
+          for (const order of orderBys) {
+            const key = Object.keys(order)[0];
+            const dir = order[key];
+            if (a[key] < b[key]) return dir === 'asc' ? -1 : 1;
+            if (a[key] > b[key]) return dir === 'asc' ? 1 : -1;
+          }
+          return 0;
+        });
       }
       if (args.take) res = res.slice(0, args.take);
       if (args.include) res = res.map(item => processInclude(item, args.include, modelName));
