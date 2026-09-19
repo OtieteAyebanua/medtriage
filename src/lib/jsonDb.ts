@@ -32,9 +32,10 @@ function matchWhere(item: any, where: any): boolean {
     if (condition && typeof condition === 'object' && !Array.isArray(condition) && !(condition instanceof Date)) {
       if (condition.in) {
         if (!condition.in.includes(item[key])) return false;
-      } else if (condition.gte !== undefined || condition.lte !== undefined) {
+      } else if (condition.gte !== undefined || condition.lte !== undefined || condition.lt !== undefined) {
         if (condition.gte !== undefined && item[key] < condition.gte) return false;
         if (condition.lte !== undefined && item[key] > condition.lte) return false;
+        if (condition.lt !== undefined && item[key] >= condition.lt) return false;
       }
     } else {
       if (item[key] !== condition) return false;
@@ -71,6 +72,9 @@ function processInclude(item: any, include: any, modelName: string) {
       }
       res.record_symptoms = rs;
     }
+  }
+  if (modelName === 'session' && include.worker) {
+    res.worker = workers.find((w: any) => w.user_id === item.user_id);
   }
   return res;
 }
