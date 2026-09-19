@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
         // How often doctors agree with the AI — the key governance metric for the model
         agreement_rate: reviewed > 0 ? Math.round((accepted / reviewed) * 100) : null,
       },
-      status_distribution: Object.fromEntries(byStatus.map((r) => [r.status, r._count._all])),
+      status_distribution: Object.fromEntries(byStatus.map((r: any) => [r.status, r._count._all])),
       recent_records: recentAssessments,
     });
   } catch (error) {

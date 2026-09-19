@@ -41,7 +41,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     return NextResponse.json({
       patient: { ...profile, age: ageFromDob(patient.date_of_birth) },
-      visits: records.map((r) => ({
+      visits: records.map((r: any) => ({
         record_id: r.record_id,
         visit_date: r.visit_date,
         visit_type: r.visit_type,
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           oxygen_level: r.vitals_oxygen_level,
           respiratory_rate: r.vitals_respiratory_rate,
         },
-        symptoms: r.record_symptoms.map((rs) => ({
+        symptoms: r.record_symptoms.map((rs: any) => ({
           symptom_id: rs.symptom.symptom_id,
           name: rs.symptom.symptom_name,
           category: rs.symptom.category,

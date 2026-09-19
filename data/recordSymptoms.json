@@ -1,0 +1,930 @@
+[
+  {
+    "record_symptom_id": 1,
+    "record_id": 1,
+    "symptom_id": 1,
+    "severity": "severe",
+    "duration": "Less than 24 hours",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 2,
+    "record_id": 1,
+    "symptom_id": 3,
+    "severity": "severe",
+    "duration": "Less than 24 hours",
+    "notes": "Cannot touch chin to chest"
+  },
+  {
+    "record_symptom_id": 3,
+    "record_id": 1,
+    "symptom_id": 9,
+    "severity": "moderate",
+    "duration": "Less than 24 hours",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 4,
+    "record_id": 1,
+    "symptom_id": 2,
+    "severity": "severe",
+    "duration": "Less than 24 hours",
+    "notes": "Photophobia present"
+  },
+  {
+    "record_symptom_id": 5,
+    "record_id": 2,
+    "symptom_id": 18,
+    "severity": "severe",
+    "duration": "Less than 24 hours",
+    "notes": "Two generalised fits, each ~2 min"
+  },
+  {
+    "record_symptom_id": 6,
+    "record_id": 2,
+    "symptom_id": 1,
+    "severity": "severe",
+    "duration": "1–2 days",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 7,
+    "record_id": 2,
+    "symptom_id": 4,
+    "severity": "moderate",
+    "duration": "Less than 24 hours",
+    "notes": "Drowsy but responds to voice"
+  },
+  {
+    "record_symptom_id": 8,
+    "record_id": 3,
+    "symptom_id": 25,
+    "severity": "moderate",
+    "duration": "1–2 days",
+    "notes": "Painful swallowing, no white patches"
+  },
+  {
+    "record_symptom_id": 9,
+    "record_id": 3,
+    "symptom_id": 1,
+    "severity": "mild",
+    "duration": "1–2 days",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 10,
+    "record_id": 4,
+    "symptom_id": 39,
+    "severity": "moderate",
+    "duration": "3–7 days",
+    "notes": "4 cm fluctuant swelling, left thigh"
+  },
+  {
+    "record_symptom_id": 11,
+    "record_id": 5,
+    "symptom_id": 39,
+    "severity": "moderate",
+    "duration": "3–7 days",
+    "notes": "4 cm fluctuant swelling, left thigh"
+  },
+  {
+    "record_symptom_id": 12,
+    "record_id": 6,
+    "symptom_id": 37,
+    "severity": "moderate",
+    "duration": "Less than 24 hours",
+    "notes": "RTA 1 hour ago, no loss of consciousness"
+  },
+  {
+    "record_symptom_id": 13,
+    "record_id": 6,
+    "symptom_id": 39,
+    "severity": "mild",
+    "duration": "Less than 24 hours",
+    "notes": "3 cm laceration, bleeding controlled"
+  },
+  {
+    "record_symptom_id": 14,
+    "record_id": 7,
+    "symptom_id": 1,
+    "severity": "moderate",
+    "duration": "3–7 days",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 15,
+    "record_id": 7,
+    "symptom_id": 38,
+    "severity": "moderate",
+    "duration": "1–2 days",
+    "notes": "Started behind ears, spreading down; blanches on pressure"
+  },
+  {
+    "record_symptom_id": 16,
+    "record_id": 7,
+    "symptom_id": 6,
+    "severity": "mild",
+    "duration": "3–7 days",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 17,
+    "record_id": 8,
+    "symptom_id": 1,
+    "severity": "moderate",
+    "duration": "3–7 days",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 18,
+    "record_id": 8,
+    "symptom_id": 38,
+    "severity": "moderate",
+    "duration": "1–2 days",
+    "notes": "Started behind ears, spreading down; blanches on pressure"
+  },
+  {
+    "record_symptom_id": 19,
+    "record_id": 8,
+    "symptom_id": 6,
+    "severity": "mild",
+    "duration": "3–7 days",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 20,
+    "record_id": 9,
+    "symptom_id": 39,
+    "severity": "moderate",
+    "duration": "3–7 days",
+    "notes": "4 cm fluctuant swelling, left thigh"
+  },
+  {
+    "record_symptom_id": 21,
+    "record_id": 10,
+    "symptom_id": 43,
+    "severity": "moderate",
+    "duration": "3–7 days",
+    "notes": "Right ear, yellow discharge"
+  },
+  {
+    "record_symptom_id": 22,
+    "record_id": 10,
+    "symptom_id": 1,
+    "severity": "mild",
+    "duration": "1–2 days",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 23,
+    "record_id": 11,
+    "symptom_id": 39,
+    "severity": "moderate",
+    "duration": "3–7 days",
+    "notes": "4 cm fluctuant swelling, left thigh"
+  },
+  {
+    "record_symptom_id": 24,
+    "record_id": 12,
+    "symptom_id": 6,
+    "severity": "moderate",
+    "duration": "More than 2 weeks",
+    "notes": "Productive, worse at night"
+  },
+  {
+    "record_symptom_id": 25,
+    "record_id": 12,
+    "symptom_id": 23,
+    "severity": "mild",
+    "duration": "3–7 days",
+    "notes": "Streaks in sputum"
+  },
+  {
+    "record_symptom_id": 26,
+    "record_id": 12,
+    "symptom_id": 14,
+    "severity": "moderate",
+    "duration": "1–2 weeks",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 27,
+    "record_id": 12,
+    "symptom_id": 13,
+    "severity": "mild",
+    "duration": "1–2 weeks",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 28,
+    "record_id": 13,
+    "symptom_id": 20,
+    "severity": "severe",
+    "duration": "Less than 24 hours",
+    "notes": "Onset 2 hours ago, left arm and face"
+  },
+  {
+    "record_symptom_id": 29,
+    "record_id": 13,
+    "symptom_id": 2,
+    "severity": "mild",
+    "duration": "Less than 24 hours",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 30,
+    "record_id": 13,
+    "symptom_id": 19,
+    "severity": "mild",
+    "duration": "Less than 24 hours",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 31,
+    "record_id": 14,
+    "symptom_id": 40,
+    "severity": "moderate",
+    "duration": "3–7 days",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 32,
+    "record_id": 14,
+    "symptom_id": 1,
+    "severity": "mild",
+    "duration": "1–2 days",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 33,
+    "record_id": 15,
+    "symptom_id": 6,
+    "severity": "moderate",
+    "duration": "More than 2 weeks",
+    "notes": "Productive, worse at night"
+  },
+  {
+    "record_symptom_id": 34,
+    "record_id": 15,
+    "symptom_id": 23,
+    "severity": "mild",
+    "duration": "3–7 days",
+    "notes": "Streaks in sputum"
+  },
+  {
+    "record_symptom_id": 35,
+    "record_id": 15,
+    "symptom_id": 14,
+    "severity": "moderate",
+    "duration": "1–2 weeks",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 36,
+    "record_id": 15,
+    "symptom_id": 13,
+    "severity": "mild",
+    "duration": "1–2 weeks",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 37,
+    "record_id": 16,
+    "symptom_id": 6,
+    "severity": "moderate",
+    "duration": "More than 2 weeks",
+    "notes": "Productive, worse at night"
+  },
+  {
+    "record_symptom_id": 38,
+    "record_id": 16,
+    "symptom_id": 23,
+    "severity": "mild",
+    "duration": "3–7 days",
+    "notes": "Streaks in sputum"
+  },
+  {
+    "record_symptom_id": 39,
+    "record_id": 16,
+    "symptom_id": 14,
+    "severity": "moderate",
+    "duration": "1–2 weeks",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 40,
+    "record_id": 16,
+    "symptom_id": 13,
+    "severity": "mild",
+    "duration": "1–2 weeks",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 41,
+    "record_id": 17,
+    "symptom_id": 20,
+    "severity": "severe",
+    "duration": "Less than 24 hours",
+    "notes": "Onset 2 hours ago, left arm and face"
+  },
+  {
+    "record_symptom_id": 42,
+    "record_id": 17,
+    "symptom_id": 2,
+    "severity": "mild",
+    "duration": "Less than 24 hours",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 43,
+    "record_id": 17,
+    "symptom_id": 19,
+    "severity": "mild",
+    "duration": "Less than 24 hours",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 44,
+    "record_id": 18,
+    "symptom_id": 40,
+    "severity": "moderate",
+    "duration": "3–7 days",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 45,
+    "record_id": 18,
+    "symptom_id": 1,
+    "severity": "mild",
+    "duration": "1–2 days",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 46,
+    "record_id": 19,
+    "symptom_id": 37,
+    "severity": "moderate",
+    "duration": "Less than 24 hours",
+    "notes": "RTA 1 hour ago, no loss of consciousness"
+  },
+  {
+    "record_symptom_id": 47,
+    "record_id": 19,
+    "symptom_id": 39,
+    "severity": "mild",
+    "duration": "Less than 24 hours",
+    "notes": "3 cm laceration, bleeding controlled"
+  },
+  {
+    "record_symptom_id": 48,
+    "record_id": 21,
+    "symptom_id": 39,
+    "severity": "moderate",
+    "duration": "3–7 days",
+    "notes": "4 cm fluctuant swelling, left thigh"
+  },
+  {
+    "record_symptom_id": 49,
+    "record_id": 22,
+    "symptom_id": 43,
+    "severity": "moderate",
+    "duration": "3–7 days",
+    "notes": "Right ear, yellow discharge"
+  },
+  {
+    "record_symptom_id": 50,
+    "record_id": 22,
+    "symptom_id": 1,
+    "severity": "mild",
+    "duration": "1–2 days",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 51,
+    "record_id": 23,
+    "symptom_id": 43,
+    "severity": "moderate",
+    "duration": "3–7 days",
+    "notes": "Right ear, yellow discharge"
+  },
+  {
+    "record_symptom_id": 52,
+    "record_id": 23,
+    "symptom_id": 1,
+    "severity": "mild",
+    "duration": "1–2 days",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 53,
+    "record_id": 24,
+    "symptom_id": 1,
+    "severity": "severe",
+    "duration": "Less than 24 hours",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 54,
+    "record_id": 24,
+    "symptom_id": 3,
+    "severity": "severe",
+    "duration": "Less than 24 hours",
+    "notes": "Cannot touch chin to chest"
+  },
+  {
+    "record_symptom_id": 55,
+    "record_id": 24,
+    "symptom_id": 9,
+    "severity": "moderate",
+    "duration": "Less than 24 hours",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 56,
+    "record_id": 24,
+    "symptom_id": 2,
+    "severity": "severe",
+    "duration": "Less than 24 hours",
+    "notes": "Photophobia present"
+  },
+  {
+    "record_symptom_id": 57,
+    "record_id": 26,
+    "symptom_id": 1,
+    "severity": "moderate",
+    "duration": "1–2 weeks",
+    "notes": "Step-ladder pattern"
+  },
+  {
+    "record_symptom_id": 58,
+    "record_id": 26,
+    "symptom_id": 8,
+    "severity": "moderate",
+    "duration": "3–7 days",
+    "notes": "Diffuse, tender lower abdomen"
+  },
+  {
+    "record_symptom_id": 59,
+    "record_id": 26,
+    "symptom_id": 13,
+    "severity": "moderate",
+    "duration": "1–2 weeks",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 60,
+    "record_id": 26,
+    "symptom_id": 10,
+    "severity": "mild",
+    "duration": "1–2 days",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 61,
+    "record_id": 27,
+    "symptom_id": 36,
+    "severity": "severe",
+    "duration": "1–2 days",
+    "notes": "Pain score 9/10, not relieved by paracetamol"
+  },
+  {
+    "record_symptom_id": 62,
+    "record_id": 27,
+    "symptom_id": 12,
+    "severity": "moderate",
+    "duration": "1–2 days",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 63,
+    "record_id": 27,
+    "symptom_id": 33,
+    "severity": "mild",
+    "duration": "3–7 days",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 64,
+    "record_id": 28,
+    "symptom_id": 18,
+    "severity": "severe",
+    "duration": "Less than 24 hours",
+    "notes": "Two generalised fits, each ~2 min"
+  },
+  {
+    "record_symptom_id": 65,
+    "record_id": 28,
+    "symptom_id": 1,
+    "severity": "severe",
+    "duration": "1–2 days",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 66,
+    "record_id": 28,
+    "symptom_id": 4,
+    "severity": "moderate",
+    "duration": "Less than 24 hours",
+    "notes": "Drowsy but responds to voice"
+  },
+  {
+    "record_symptom_id": 67,
+    "record_id": 29,
+    "symptom_id": 43,
+    "severity": "moderate",
+    "duration": "3–7 days",
+    "notes": "Right ear, yellow discharge"
+  },
+  {
+    "record_symptom_id": 68,
+    "record_id": 29,
+    "symptom_id": 1,
+    "severity": "mild",
+    "duration": "1–2 days",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 69,
+    "record_id": 30,
+    "symptom_id": 39,
+    "severity": "moderate",
+    "duration": "3–7 days",
+    "notes": "4 cm fluctuant swelling, left thigh"
+  },
+  {
+    "record_symptom_id": 70,
+    "record_id": 31,
+    "symptom_id": 1,
+    "severity": "severe",
+    "duration": "Less than 24 hours",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 71,
+    "record_id": 31,
+    "symptom_id": 3,
+    "severity": "severe",
+    "duration": "Less than 24 hours",
+    "notes": "Cannot touch chin to chest"
+  },
+  {
+    "record_symptom_id": 72,
+    "record_id": 31,
+    "symptom_id": 9,
+    "severity": "moderate",
+    "duration": "Less than 24 hours",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 73,
+    "record_id": 31,
+    "symptom_id": 2,
+    "severity": "severe",
+    "duration": "Less than 24 hours",
+    "notes": "Photophobia present"
+  },
+  {
+    "record_symptom_id": 74,
+    "record_id": 32,
+    "symptom_id": 1,
+    "severity": "severe",
+    "duration": "Less than 24 hours",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 75,
+    "record_id": 32,
+    "symptom_id": 3,
+    "severity": "severe",
+    "duration": "Less than 24 hours",
+    "notes": "Cannot touch chin to chest"
+  },
+  {
+    "record_symptom_id": 76,
+    "record_id": 32,
+    "symptom_id": 9,
+    "severity": "moderate",
+    "duration": "Less than 24 hours",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 77,
+    "record_id": 32,
+    "symptom_id": 2,
+    "severity": "severe",
+    "duration": "Less than 24 hours",
+    "notes": "Photophobia present"
+  },
+  {
+    "record_symptom_id": 78,
+    "record_id": 33,
+    "symptom_id": 25,
+    "severity": "moderate",
+    "duration": "1–2 days",
+    "notes": "Painful swallowing, no white patches"
+  },
+  {
+    "record_symptom_id": 79,
+    "record_id": 33,
+    "symptom_id": 1,
+    "severity": "mild",
+    "duration": "1–2 days",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 80,
+    "record_id": 34,
+    "symptom_id": 18,
+    "severity": "severe",
+    "duration": "Less than 24 hours",
+    "notes": "Two generalised fits, each ~2 min"
+  },
+  {
+    "record_symptom_id": 81,
+    "record_id": 34,
+    "symptom_id": 1,
+    "severity": "severe",
+    "duration": "1–2 days",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 82,
+    "record_id": 34,
+    "symptom_id": 4,
+    "severity": "moderate",
+    "duration": "Less than 24 hours",
+    "notes": "Drowsy but responds to voice"
+  },
+  {
+    "record_symptom_id": 83,
+    "record_id": 35,
+    "symptom_id": 25,
+    "severity": "moderate",
+    "duration": "1–2 days",
+    "notes": "Painful swallowing, no white patches"
+  },
+  {
+    "record_symptom_id": 84,
+    "record_id": 35,
+    "symptom_id": 1,
+    "severity": "mild",
+    "duration": "1–2 days",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 85,
+    "record_id": 36,
+    "symptom_id": 6,
+    "severity": "moderate",
+    "duration": "More than 2 weeks",
+    "notes": "Productive, worse at night"
+  },
+  {
+    "record_symptom_id": 86,
+    "record_id": 36,
+    "symptom_id": 23,
+    "severity": "mild",
+    "duration": "3–7 days",
+    "notes": "Streaks in sputum"
+  },
+  {
+    "record_symptom_id": 87,
+    "record_id": 36,
+    "symptom_id": 14,
+    "severity": "moderate",
+    "duration": "1–2 weeks",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 88,
+    "record_id": 36,
+    "symptom_id": 13,
+    "severity": "mild",
+    "duration": "1–2 weeks",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 89,
+    "record_id": 37,
+    "symptom_id": 39,
+    "severity": "moderate",
+    "duration": "3–7 days",
+    "notes": "4 cm fluctuant swelling, left thigh"
+  },
+  {
+    "record_symptom_id": 90,
+    "record_id": 38,
+    "symptom_id": 1,
+    "severity": "severe",
+    "duration": "Less than 24 hours",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 91,
+    "record_id": 38,
+    "symptom_id": 3,
+    "severity": "severe",
+    "duration": "Less than 24 hours",
+    "notes": "Cannot touch chin to chest"
+  },
+  {
+    "record_symptom_id": 92,
+    "record_id": 38,
+    "symptom_id": 9,
+    "severity": "moderate",
+    "duration": "Less than 24 hours",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 93,
+    "record_id": 38,
+    "symptom_id": 2,
+    "severity": "severe",
+    "duration": "Less than 24 hours",
+    "notes": "Photophobia present"
+  },
+  {
+    "record_symptom_id": 94,
+    "record_id": 39,
+    "symptom_id": 25,
+    "severity": "moderate",
+    "duration": "1–2 days",
+    "notes": "Painful swallowing, no white patches"
+  },
+  {
+    "record_symptom_id": 95,
+    "record_id": 39,
+    "symptom_id": 1,
+    "severity": "mild",
+    "duration": "1–2 days",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 96,
+    "record_id": 40,
+    "symptom_id": 7,
+    "severity": "severe",
+    "duration": "Less than 24 hours",
+    "notes": "Started 40 min ago while walking"
+  },
+  {
+    "record_symptom_id": 97,
+    "record_id": 40,
+    "symptom_id": 5,
+    "severity": "moderate",
+    "duration": "Less than 24 hours",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 98,
+    "record_id": 40,
+    "symptom_id": 14,
+    "severity": "moderate",
+    "duration": "Less than 24 hours",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 99,
+    "record_id": 41,
+    "symptom_id": 6,
+    "severity": "moderate",
+    "duration": "More than 2 weeks",
+    "notes": "Productive, worse at night"
+  },
+  {
+    "record_symptom_id": 100,
+    "record_id": 41,
+    "symptom_id": 23,
+    "severity": "mild",
+    "duration": "3–7 days",
+    "notes": "Streaks in sputum"
+  },
+  {
+    "record_symptom_id": 101,
+    "record_id": 41,
+    "symptom_id": 14,
+    "severity": "moderate",
+    "duration": "1–2 weeks",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 102,
+    "record_id": 41,
+    "symptom_id": 13,
+    "severity": "mild",
+    "duration": "1–2 weeks",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 103,
+    "record_id": 42,
+    "symptom_id": 37,
+    "severity": "moderate",
+    "duration": "Less than 24 hours",
+    "notes": "RTA 1 hour ago, no loss of consciousness"
+  },
+  {
+    "record_symptom_id": 104,
+    "record_id": 42,
+    "symptom_id": 39,
+    "severity": "mild",
+    "duration": "Less than 24 hours",
+    "notes": "3 cm laceration, bleeding controlled"
+  },
+  {
+    "record_symptom_id": 105,
+    "record_id": 43,
+    "symptom_id": 1,
+    "severity": "severe",
+    "duration": "Less than 24 hours",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 106,
+    "record_id": 43,
+    "symptom_id": 3,
+    "severity": "severe",
+    "duration": "Less than 24 hours",
+    "notes": "Cannot touch chin to chest"
+  },
+  {
+    "record_symptom_id": 107,
+    "record_id": 43,
+    "symptom_id": 9,
+    "severity": "moderate",
+    "duration": "Less than 24 hours",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 108,
+    "record_id": 43,
+    "symptom_id": 2,
+    "severity": "severe",
+    "duration": "Less than 24 hours",
+    "notes": "Photophobia present"
+  },
+  {
+    "record_symptom_id": 109,
+    "record_id": 44,
+    "symptom_id": 1,
+    "severity": "moderate",
+    "duration": "3–7 days",
+    "notes": "Intermittent, worse in the evenings"
+  },
+  {
+    "record_symptom_id": 110,
+    "record_id": 44,
+    "symptom_id": 2,
+    "severity": "moderate",
+    "duration": "3–7 days",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 111,
+    "record_id": 44,
+    "symptom_id": 12,
+    "severity": "mild",
+    "duration": "3–7 days",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 112,
+    "record_id": 46,
+    "symptom_id": 43,
+    "severity": "moderate",
+    "duration": "3–7 days",
+    "notes": "Right ear, yellow discharge"
+  },
+  {
+    "record_symptom_id": 113,
+    "record_id": 46,
+    "symptom_id": 1,
+    "severity": "mild",
+    "duration": "1–2 days",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 114,
+    "record_id": 47,
+    "symptom_id": 1,
+    "severity": "moderate",
+    "duration": "3–7 days",
+    "notes": "Intermittent, worse in the evenings"
+  },
+  {
+    "record_symptom_id": 115,
+    "record_id": 47,
+    "symptom_id": 2,
+    "severity": "moderate",
+    "duration": "3–7 days",
+    "notes": null
+  },
+  {
+    "record_symptom_id": 116,
+    "record_id": 47,
+    "symptom_id": 12,
+    "severity": "mild",
+    "duration": "3–7 days",
+    "notes": null
+  }
+]

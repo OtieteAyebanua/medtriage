@@ -66,11 +66,11 @@ export async function POST(request: NextRequest) {
     const catalogue = symptomIds.length
       ? await prisma.symptom.findMany({ where: { symptom_id: { in: symptomIds } } })
       : [];
-    const missing = symptomIds.filter((id) => !catalogue.some((c) => c.symptom_id === id));
+    const missing = symptomIds.filter((id) => !catalogue.some((c: any) => c.symptom_id === id));
     if (missing.length) {
       return NextResponse.json({ error: `Unknown symptom IDs: ${missing.join(', ')}` }, { status: 400 });
     }
-    const byId = new Map(catalogue.map((c) => [c.symptom_id, c]));
+    const byId = new Map(catalogue.map((c: any) => [c.symptom_id, c]));
 
     // ---- 1. Inference (external model if configured, otherwise built-in rules) ----
     const inferenceInput: InferenceRequest = {
@@ -85,8 +85,8 @@ export async function POST(request: NextRequest) {
       chief_complaint: chiefComplaint,
       symptoms: symptomInputs.map((s) => ({
         symptom_id: s.symptomId,
-        name: byId.get(s.symptomId)!.symptom_name,
-        category: byId.get(s.symptomId)!.category,
+        name: (byId.get(s.symptomId) as any).symptom_name,
+        category: (byId.get(s.symptomId) as any).category,
         severity: s.severity,
         duration: s.duration,
         notes: s.notes,
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
     const result = await runInference(inferenceInput);
 
     // ---- 2. Persist atomically: close previous active assessment, create record + symptoms ----
-    const newRecord = await prisma.$transaction(async (tx) => {
+    const newRecord = await prisma.$transaction(async (tx: any) => {
       await tx.patientRecord.updateMany({
         where: { patient_id: patientId, is_current: true },
         data: { is_current: false },

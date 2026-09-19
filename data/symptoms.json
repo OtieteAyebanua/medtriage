@@ -1,0 +1,332 @@
+[
+  {
+    "symptom_id": 1,
+    "symptom_name": "High Fever",
+    "category": "systemic",
+    "description": "Elevated core body temperature above 38.5°C",
+    "severity_scale": 4,
+    "related_conditions": "Malaria, Typhoid Fever, Sepsis, Meningitis",
+    "synonyms": "pyrexia, hot body, chills, temperature",
+    "follow_up_questions": "Is the fever intermittent or continuous? Any rigors or shivering? Has the patient taken antimalarials?"
+  },
+  {
+    "symptom_id": 2,
+    "symptom_name": "Severe Headache",
+    "category": "neurological",
+    "description": "Intense, persistent head pain",
+    "severity_scale": 3,
+    "related_conditions": "Meningitis, Malaria, Hypertensive crisis, Migraine",
+    "synonyms": "head pain, migraine, throbbing head",
+    "follow_up_questions": "Is it the worst headache of the patient’s life? Sudden or gradual onset? Any visual changes or vomiting?"
+  },
+  {
+    "symptom_id": 3,
+    "symptom_name": "Neck Stiffness (Nuchal Rigidity)",
+    "category": "neurological",
+    "description": "Painful resistance to passive neck flexion",
+    "severity_scale": 5,
+    "related_conditions": "Meningitis, Subarachnoid haemorrhage",
+    "synonyms": "stiff neck, cannot bend neck, nuchal rigidity",
+    "follow_up_questions": "Can the patient touch chin to chest? Any sensitivity to light? Any rash?"
+  },
+  {
+    "symptom_id": 4,
+    "symptom_name": "Altered Consciousness / Confusion",
+    "category": "neurological",
+    "description": "Reduced alertness, disorientation or unresponsiveness",
+    "severity_scale": 5,
+    "related_conditions": "Cerebral malaria, Meningitis, Hypoglycaemia, Sepsis, Stroke",
+    "synonyms": "confused, drowsy, unconscious, not responding, coma, collapsed",
+    "follow_up_questions": "Does the patient respond to voice or pain? Any history of diabetes? Any recent seizures or head injury?"
+  },
+  {
+    "symptom_id": 5,
+    "symptom_name": "Shortness of Breath (Dyspnea)",
+    "category": "respiratory",
+    "description": "Difficulty breathing or breathlessness at rest or on exertion",
+    "severity_scale": 4,
+    "related_conditions": "Pneumonia, Asthma, Heart failure, Anaemia",
+    "synonyms": "breathless, cannot breathe, difficulty breathing, dyspnea, dyspnoea",
+    "follow_up_questions": "Does it occur at rest or only on exertion? Any wheeze? Can the patient speak in full sentences?"
+  },
+  {
+    "symptom_id": 6,
+    "symptom_name": "Persistent Cough",
+    "category": "respiratory",
+    "description": "Cough lasting more than one week",
+    "severity_scale": 2,
+    "related_conditions": "Pneumonia, Tuberculosis, Bronchitis, Asthma",
+    "synonyms": "coughing, chesty cough, dry cough",
+    "follow_up_questions": "Is it productive? Any blood in the sputum? Longer than 2 weeks? Any TB contact?"
+  },
+  {
+    "symptom_id": 7,
+    "symptom_name": "Chest Pain",
+    "category": "cardiac",
+    "description": "Pressure, tightness or pain in the chest",
+    "severity_scale": 5,
+    "related_conditions": "Acute coronary syndrome, Pneumonia, Pulmonary embolism, Pericarditis",
+    "synonyms": "chest tightness, chest pressure, heart pain",
+    "follow_up_questions": "Does it spread to the arm, jaw or back? Worse on breathing in? Any sweating or nausea with it?"
+  },
+  {
+    "symptom_id": 8,
+    "symptom_name": "Severe Abdominal Pain",
+    "category": "gastrointestinal",
+    "description": "Intense pain anywhere in the abdomen",
+    "severity_scale": 4,
+    "related_conditions": "Appendicitis, Typhoid perforation, Ectopic pregnancy, Intestinal obstruction",
+    "synonyms": "stomach pain, belly pain, tummy ache, abdominal cramps",
+    "follow_up_questions": "Where exactly is the pain? Is the abdomen rigid or tender? Last menstrual period? Passing stool and gas?"
+  },
+  {
+    "symptom_id": 9,
+    "symptom_name": "Persistent Vomiting",
+    "category": "gastrointestinal",
+    "description": "Repeated vomiting over several hours",
+    "severity_scale": 3,
+    "related_conditions": "Gastroenteritis, Malaria, Intestinal obstruction, Pregnancy",
+    "synonyms": "throwing up, vomit, emesis, being sick",
+    "follow_up_questions": "How many times today? Any blood or bile? Can the patient keep fluids down?"
+  },
+  {
+    "symptom_id": 10,
+    "symptom_name": "Profuse Diarrhea",
+    "category": "gastrointestinal",
+    "description": "Three or more loose or watery stools in 24 hours",
+    "severity_scale": 3,
+    "related_conditions": "Gastroenteritis, Cholera, Typhoid, Dysentery",
+    "synonyms": "loose stools, watery stool, running stomach, purging",
+    "follow_up_questions": "How many stools today? Any blood or mucus? Is the patient passing urine normally? Rice-water appearance?"
+  },
+  {
+    "symptom_id": 12,
+    "symptom_name": "Generalised Weakness / Fatigue",
+    "category": "systemic",
+    "description": "Marked loss of energy and reduced ability to perform usual activities",
+    "severity_scale": 2,
+    "related_conditions": "Anaemia, Malaria, Dehydration, Diabetes",
+    "synonyms": "tiredness, body weakness, malaise, lethargy",
+    "follow_up_questions": "How many days has it lasted? Any weight loss? Is the patient eating normally?"
+  },
+  {
+    "symptom_id": 13,
+    "symptom_name": "Loss of Appetite",
+    "category": "systemic",
+    "description": "Reduced desire to eat over several days",
+    "severity_scale": 1,
+    "related_conditions": "Typhoid Fever, Hepatitis, Depression",
+    "synonyms": "anorexia, not eating, poor feeding",
+    "follow_up_questions": "How long has the patient eaten less than usual? Any nausea with it?"
+  },
+  {
+    "symptom_id": 14,
+    "symptom_name": "Excessive Sweating / Night Sweats",
+    "category": "systemic",
+    "description": "Drenching sweats, especially at night",
+    "severity_scale": 2,
+    "related_conditions": "Tuberculosis, Malaria, Lymphoma",
+    "synonyms": "sweating at night, drenching sweat",
+    "follow_up_questions": "Do the sweats soak the bedding? Any cough longer than 2 weeks? Any weight loss?"
+  },
+  {
+    "symptom_id": 18,
+    "symptom_name": "Seizures / Convulsions",
+    "category": "neurological",
+    "description": "Episodes of uncontrolled shaking or loss of consciousness",
+    "severity_scale": 5,
+    "related_conditions": "Cerebral malaria, Epilepsy, Febrile convulsion, Eclampsia",
+    "synonyms": "fits, convulsing, shaking, epilepsy",
+    "follow_up_questions": "How long did the fit last? Is it the first episode? Was there fever before it? Is the patient pregnant?"
+  },
+  {
+    "symptom_id": 19,
+    "symptom_name": "Dizziness / Fainting",
+    "category": "neurological",
+    "description": "Light-headedness or brief loss of consciousness",
+    "severity_scale": 3,
+    "related_conditions": "Anaemia, Dehydration, Hypotension, Arrhythmia",
+    "synonyms": "faint, light-headed, syncope, vertigo, collapsed",
+    "follow_up_questions": "Did the patient fully lose consciousness? Does it happen on standing? Any palpitations?"
+  },
+  {
+    "symptom_id": 20,
+    "symptom_name": "Weakness on One Side of Body",
+    "category": "neurological",
+    "description": "Sudden unilateral limb or facial weakness",
+    "severity_scale": 5,
+    "related_conditions": "Stroke, Transient ischaemic attack",
+    "synonyms": "hemiparesis, face drooping, cannot move arm, slurred speech",
+    "follow_up_questions": "When exactly did it start? Any facial droop or speech difficulty? Known hypertension?"
+  },
+  {
+    "symptom_id": 23,
+    "symptom_name": "Coughing up Blood",
+    "category": "respiratory",
+    "description": "Blood in sputum (haemoptysis)",
+    "severity_scale": 4,
+    "related_conditions": "Tuberculosis, Pneumonia, Pulmonary embolism",
+    "synonyms": "haemoptysis, hemoptysis, blood in sputum, blood when coughing",
+    "follow_up_questions": "How much blood — streaks or cupfuls? Any weight loss or night sweats?"
+  },
+  {
+    "symptom_id": 24,
+    "symptom_name": "Wheezing",
+    "category": "respiratory",
+    "description": "High-pitched whistling sound on breathing out",
+    "severity_scale": 3,
+    "related_conditions": "Asthma, COPD, Bronchiolitis, Allergic reaction",
+    "synonyms": "whistling chest, tight chest, noisy breathing",
+    "follow_up_questions": "Known asthma? Any inhaler used today? Any recent exposure to smoke or dust?"
+  },
+  {
+    "symptom_id": 25,
+    "symptom_name": "Sore Throat",
+    "category": "respiratory",
+    "description": "Pain or scratchiness in the throat",
+    "severity_scale": 1,
+    "related_conditions": "Pharyngitis, Tonsillitis, Common cold",
+    "synonyms": "throat pain, painful swallowing",
+    "follow_up_questions": "Difficulty swallowing? Any white patches on the tonsils? Any fever?"
+  },
+  {
+    "symptom_id": 27,
+    "symptom_name": "Palpitations",
+    "category": "cardiac",
+    "description": "Awareness of fast, irregular or pounding heartbeat",
+    "severity_scale": 3,
+    "related_conditions": "Arrhythmia, Anaemia, Thyrotoxicosis, Anxiety",
+    "synonyms": "racing heart, heart pounding, irregular heartbeat",
+    "follow_up_questions": "Is the beat regular or irregular? Any dizziness or chest pain with it? Caffeine or stimulant use?"
+  },
+  {
+    "symptom_id": 28,
+    "symptom_name": "Swollen Legs / Ankles",
+    "category": "cardiac",
+    "description": "Bilateral pitting oedema of the lower limbs",
+    "severity_scale": 2,
+    "related_conditions": "Heart failure, Kidney disease, Pre-eclampsia, Liver disease",
+    "synonyms": "oedema, edema, swollen feet, puffy legs",
+    "follow_up_questions": "Both legs or one? Any breathlessness lying flat? Is the patient pregnant?"
+  },
+  {
+    "symptom_id": 32,
+    "symptom_name": "Blood in Stool",
+    "category": "gastrointestinal",
+    "description": "Visible fresh or dark blood in faeces",
+    "severity_scale": 4,
+    "related_conditions": "Dysentery, Peptic ulcer, Haemorrhoids, Typhoid",
+    "synonyms": "bloody stool, melaena, melena, black stool",
+    "follow_up_questions": "Bright red or black and tarry? Any abdominal pain? Any NSAID use?"
+  },
+  {
+    "symptom_id": 33,
+    "symptom_name": "Yellow Eyes / Skin (Jaundice)",
+    "category": "gastrointestinal",
+    "description": "Yellow discolouration of sclera or skin",
+    "severity_scale": 3,
+    "related_conditions": "Hepatitis, Severe malaria, Sickle cell crisis, Biliary obstruction",
+    "synonyms": "jaundice, yellow eyes, yellow skin",
+    "follow_up_questions": "Dark urine or pale stools? Any itching? Any alcohol or herbal medicine use?"
+  },
+  {
+    "symptom_id": 34,
+    "symptom_name": "Signs of Dehydration",
+    "category": "gastrointestinal",
+    "description": "Sunken eyes, dry mouth, reduced skin turgor or reduced urine output",
+    "severity_scale": 4,
+    "related_conditions": "Gastroenteritis, Cholera, Diabetic ketoacidosis",
+    "synonyms": "dehydrated, sunken eyes, dry mouth, not passing urine",
+    "follow_up_questions": "When did the patient last pass urine? Is the patient drinking? Is the child lethargic?"
+  },
+  {
+    "symptom_id": 35,
+    "symptom_name": "Joint Pain / Swelling",
+    "category": "musculoskeletal",
+    "description": "Pain, warmth or swelling in one or more joints",
+    "severity_scale": 2,
+    "related_conditions": "Sickle cell crisis, Septic arthritis, Rheumatoid arthritis, Gout",
+    "synonyms": "arthralgia, painful joints, swollen knee",
+    "follow_up_questions": "One joint or many? Any fever? Known sickle cell disease?"
+  },
+  {
+    "symptom_id": 36,
+    "symptom_name": "Bone Pain (Sickle Cell Crisis)",
+    "category": "musculoskeletal",
+    "description": "Severe deep bone pain in a known sickle cell patient",
+    "severity_scale": 4,
+    "related_conditions": "Vaso-occlusive crisis, Osteomyelitis",
+    "synonyms": "crisis, bone pain, sickle cell pain",
+    "follow_up_questions": "Where is the pain? Any chest pain or breathlessness (acute chest syndrome)? Fluid intake today?"
+  },
+  {
+    "symptom_id": 37,
+    "symptom_name": "Injury / Trauma",
+    "category": "musculoskeletal",
+    "description": "Recent physical injury, fall, road traffic accident or assault",
+    "severity_scale": 3,
+    "related_conditions": "Fracture, Head injury, Internal bleeding",
+    "synonyms": "accident, fall, wound, fracture, RTA",
+    "follow_up_questions": "How did it happen? Any loss of consciousness? Any bleeding that will not stop? Can the patient bear weight?"
+  },
+  {
+    "symptom_id": 38,
+    "symptom_name": "Skin Rash",
+    "category": "dermatological",
+    "description": "New rash anywhere on the body",
+    "severity_scale": 2,
+    "related_conditions": "Measles, Chickenpox, Drug reaction, Meningococcal sepsis",
+    "synonyms": "spots, skin eruption, hives, itchy skin",
+    "follow_up_questions": "Does the rash fade when pressed with a glass? Any fever? Any new medicines? Any contact with measles?"
+  },
+  {
+    "symptom_id": 39,
+    "symptom_name": "Wound / Abscess",
+    "category": "dermatological",
+    "description": "Open wound, boil or collection of pus",
+    "severity_scale": 2,
+    "related_conditions": "Cellulitis, Abscess, Tetanus risk",
+    "synonyms": "boil, pus, sore, ulcer, cut",
+    "follow_up_questions": "How old is the wound? Any spreading redness? Tetanus vaccination up to date?"
+  },
+  {
+    "symptom_id": 40,
+    "symptom_name": "Painful Urination",
+    "category": "genitourinary",
+    "description": "Burning or pain when passing urine",
+    "severity_scale": 2,
+    "related_conditions": "Urinary tract infection, STI, Schistosomiasis",
+    "synonyms": "dysuria, burning urine, frequent urination",
+    "follow_up_questions": "Any blood in the urine? Any flank pain or fever? Any discharge?"
+  },
+  {
+    "symptom_id": 41,
+    "symptom_name": "Vaginal Bleeding in Pregnancy",
+    "category": "obstetric",
+    "description": "Any bleeding per vaginam in a pregnant woman",
+    "severity_scale": 5,
+    "related_conditions": "Miscarriage, Ectopic pregnancy, Placenta praevia, Abruption",
+    "synonyms": "bleeding pregnant, spotting, antepartum haemorrhage",
+    "follow_up_questions": "How many weeks pregnant? How heavy is the bleeding? Any abdominal pain? Any dizziness?"
+  },
+  {
+    "symptom_id": 42,
+    "symptom_name": "Labour Pains / Contractions",
+    "category": "obstetric",
+    "description": "Regular painful uterine contractions",
+    "severity_scale": 4,
+    "related_conditions": "Labour, Preterm labour, Placental abruption",
+    "synonyms": "contractions, in labour, waters broken",
+    "follow_up_questions": "How many weeks pregnant? How far apart are the contractions? Have the waters broken? Is the baby moving?"
+  },
+  {
+    "symptom_id": 43,
+    "symptom_name": "Ear Pain / Discharge",
+    "category": "ent",
+    "description": "Pain in the ear or fluid draining from the ear canal",
+    "severity_scale": 1,
+    "related_conditions": "Otitis media, Otitis externa",
+    "synonyms": "earache, ear discharge, pus from ear",
+    "follow_up_questions": "One ear or both? Any fever? Any hearing loss?"
+  }
+]
