@@ -4,13 +4,30 @@ import path from 'path';
 // Define paths to data
 const dataDir = path.join(process.cwd(), 'data');
 
-// Load data into memory
-let workers = JSON.parse(fs.readFileSync(path.join(dataDir, 'workers.json'), 'utf-8'));
-let patients = JSON.parse(fs.readFileSync(path.join(dataDir, 'patients.json'), 'utf-8'));
-let records = JSON.parse(fs.readFileSync(path.join(dataDir, 'records.json'), 'utf-8'));
-let symptoms = JSON.parse(fs.readFileSync(path.join(dataDir, 'symptoms.json'), 'utf-8'));
-let recordSymptoms = JSON.parse(fs.readFileSync(path.join(dataDir, 'recordSymptoms.json'), 'utf-8'));
-let sessions: any[] = []; // Sessions are purely in-memory for this mock
+const globalForDb = globalThis as unknown as {
+  workers: any[];
+  patients: any[];
+  records: any[];
+  symptoms: any[];
+  recordSymptoms: any[];
+  sessions: any[];
+};
+
+if (!globalForDb.workers) {
+  globalForDb.workers = JSON.parse(fs.readFileSync(path.join(dataDir, 'workers.json'), 'utf-8'));
+  globalForDb.patients = JSON.parse(fs.readFileSync(path.join(dataDir, 'patients.json'), 'utf-8'));
+  globalForDb.records = JSON.parse(fs.readFileSync(path.join(dataDir, 'records.json'), 'utf-8'));
+  globalForDb.symptoms = JSON.parse(fs.readFileSync(path.join(dataDir, 'symptoms.json'), 'utf-8'));
+  globalForDb.recordSymptoms = JSON.parse(fs.readFileSync(path.join(dataDir, 'recordSymptoms.json'), 'utf-8'));
+  globalForDb.sessions = [];
+}
+
+const workers = globalForDb.workers;
+const patients = globalForDb.patients;
+const records = globalForDb.records;
+const symptoms = globalForDb.symptoms;
+const recordSymptoms = globalForDb.recordSymptoms;
+const sessions = globalForDb.sessions;
 
 function matchWhere(item: any, where: any): boolean {
   if (!where) return true;
