@@ -1,0 +1,927 @@
+'use client';
+
+import React, { useEffect, useMemo, useState } from 'react';
+import styles from './Homescreen.module.css';
+import { apiFetch } from './api';
+import {
+  ageFrom,
+  DURATION_OPTIONS,
+  formatDate,
+  fullName,
+  getVitalStatus,
+  hasAllergies,
+  lastVisitSummary,
+  matchesPatient,
+  percent,
+  relativeTime,
+  SEVERITY_OPTIONS,
+  TRIAGE_LEVELS,
+  clampLevel,
+  VISIT_TYPES,
+  visitTypeLabel,
+  VITAL_DEFS,
+} from './clinical';
+import { Avatar, EmptyState, Field, Icon, LevelBadge, levelClass, Notice, SectionLabel, Spinner, VitalStatusPill } from './shared';
+import { PatientItem, SelectedSymptom, SymptomItem, TriageResult, Vitals } from './types';
+
+const STEPS = [
+  { num: 1, label: 'Patient' },
+  { num: 2, label: 'Vitals' },
+  { num: 3, label: 'Symptoms' },
+  { num: 4, label: 'Review' },
+  { num: 5, label: 'Result' },
+];
+
+const EMPTY_VITALS: Vitals = { temp: '', bp: '', heartRate: '', spo2: '', respRate: '' };
+
+export interface PatientRequest {
+  patientId: number;
+  /** Start a fresh assessment for this patient (from the registry) */
+  reset: boolean;
+  nonce: number;
+}
+
+interface Props {
+  patients: PatientItem[];
+  symptoms: SymptomItem[];
+  workerUserId: number;
+  canReview: boolean;
+  patientRequest: PatientRequest | null;
+  onRegister: () => void;
+  onViewHistory: (patientId: number) => void;
+  onTriageSaved: () => void;
+  onGoToQueue: () => void;
+}
+
+export default function TriageWizard({
+  patients,
+  symptoms,
+  workerUserId,
+  canReview,
+  patientRequest,
+  onRegister,
+  onViewHistory,
+  onTriageSaved,
+  onGoToQueue,
+}: Props) {
+  const [step, setStep] = useState(1);
+  const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
+  const [patientQuery, setPatientQuery] = useState('');
+  const [visitType, setVisitType] = useState('walk_in');
+  const [chiefComplaint, setChiefComplaint] = useState('');
+  const [vitals, setVitals] = useState<Vitals>(EMPTY_VITALS);
+  const [symptomQuery, setSymptomQuery] = useState('');
+  const [selectedSymptoms, setSelectedSymptoms] = useState<SelectedSymptom[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [result, setResult] = useState<TriageResult | null>(null);
+  const [recordId, setRecordId] = useState<number | null>(null);
+
+  const resetAll = () => {
+    setStep(1);
+    setSelectedPatientId(null);
+    setPatientQuery('');
+    setVisitType('walk_in');
+    setChiefComplaint('');
+    setVitals(EMPTY_VITALS);
+    setSymptomQuery('');
+    setSelectedSymptoms([]);
+    setSubmitError(null);
+    setResult(null);
+    setRecordId(null);
+  };
+
+  // Requests from other tabs: "Start triage" in the registry or a newly registered patient.
+  useEffect(() => {
+    if (!patientRequest) return;
+    if (patientRequest.reset) resetAll();
+    setSelectedPatientId(patientRequest.patientId);
+    setPatientQuery('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patientRequest?.nonce]);
+
+  const currentPatient = patients.find((p) => p.patient_id === selectedPatientId) ?? null;
+  const complaintOk = chiefComplaint.trim().length > 0;
+  const step1Ok = !!currentPatient && complaintOk;
+  const bpStatus = getVitalStatus('bp', vitals.bp);
+  const vitalsOk = bpStatus.kind !== 'invalid';
+  const recordedVitalsCount = VITAL_DEFS.filter((d) => vitals[d.key].trim()).length;
+
+  const filteredPatients = useMemo(
+    () => patients.filter((p) => matchesPatient(p, patientQuery)),
+    [patients, patientQuery],
+  );
+
+  const filteredSymptoms = useMemo(() => {
+    const q = symptomQuery.trim().toLowerCase();
+    if (!q) return symptoms;
+    return symptoms.filter(
+      (s) =>
+        s.symptom_name.toLowerCase().includes(q) ||
+        s.category.toLowerCase().includes(q) ||
+        (s.synonyms ?? '').toLowerCase().includes(q),
+    );
+  }, [symptoms, symptomQuery]);
+
+  const symptomsByCategory = useMemo(() => {
+    const groups: Record<string, SymptomItem[]> = {};
+    for (const s of filteredSymptoms) {
+      const cat = s.category || 'other';
+      (groups[cat] ??= []).push(s);
+    }
+    return Object.entries(groups);
+  }, [filteredSymptoms]);
+
+  const toggleSymptom = (sym: SymptomItem) => {
+    setSelectedSymptoms((prev) =>
+      prev.some((s) => s.symptomId === sym.symptom_id)
+        ? prev.filter((s) => s.symptomId !== sym.symptom_id)
+        : [...prev, { symptomId: sym.symptom_id, name: sym.symptom_name, severity: 'Moderate', duration: '1–2 days', notes: '' }],
+    );
+  };
+
+  const updateSymptom = (symptomId: number, patch: Partial<SelectedSymptom>) => {
+    setSelectedSymptoms((prev) => prev.map((s) => (s.symptomId === symptomId ? { ...s, ...patch } : s)));
+  };
+
+  const runTriage = async () => {
+    if (!currentPatient) return;
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      const payload = {
+        patient_id: currentPatient.patient_id,
+        worker_id: workerUserId,
+        visit_type: visitType,
+        chief_complaint: chiefComplaint.trim(),
+        temp: vitals.temp ? parseFloat(vitals.temp) : undefined,
+        bp: vitals.bp.trim() || undefined,
+        heart_rate: vitals.heartRate ? parseInt(vitals.heartRate, 10) : undefined,
+        spo2: vitals.spo2 ? parseFloat(vitals.spo2) : undefined,
+        resp_rate: vitals.respRate ? parseInt(vitals.respRate, 10) : undefined,
+        // The engine matches on symptom names, so send them alongside the IDs.
+        symptoms: selectedSymptoms.map((s) => ({
+          symptom_id: s.symptomId,
+          name: s.name,
+          severity: s.severity,
+          duration: s.duration,
+          notes: s.notes.trim() || undefined,
+        })),
+      };
+      const res = await apiFetch('/api/triage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (res.ok && data.status === 'success') {
+        setResult(data.triage);
+        setRecordId(data.record_id);
+        setStep(5);
+        onTriageSaved();
+      } else {
+        setSubmitError(data.error || data.message || 'The triage engine could not process this assessment.');
+      }
+    } catch (err) {
+      console.error(err);
+      setSubmitError('Could not reach the facility server. Check the LAN connection and try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const goTo = (n: number) => {
+    // Once a result is saved the inputs are frozen; only step 5 is reachable.
+    if (result) return;
+    if (n < step) setStep(n);
+  };
+
+  const stepDone = (n: number) => (result ? n < 5 : n < step);
+
+  /* ---------------- Render ---------------- */
+
+  return (
+    <div>
+      <ol className={styles.stepper} aria-label="Triage steps">
+        {STEPS.map((s, i) => {
+          const isActive = step === s.num;
+          const isDone = stepDone(s.num);
+          const clickable = !result && s.num < step;
+          return (
+            <li key={s.num} className={styles.stepItem}>
+              <button
+                type="button"
+                className={`${styles.stepButton} ${isActive ? styles.stepActive : ''} ${isDone ? styles.stepDone : ''}`}
+                onClick={() => goTo(s.num)}
+                disabled={!clickable}
+                aria-current={isActive ? 'step' : undefined}
+                title={clickable ? `Back to ${s.label}` : undefined}
+              >
+                <span className={styles.stepCircle}>{isDone ? <Icon name="check" size={14} /> : s.num}</span>
+                <span className={styles.stepLabel}>{s.label}</span>
+              </button>
+              {i < STEPS.length - 1 && <span className={`${styles.stepLine} ${isDone ? styles.stepLineDone : ''}`} />}
+            </li>
+          );
+        })}
+      </ol>
+
+      <div className={styles.wizardLayout}>
+        <div className={styles.wizardMain}>
+          {/* ---------- STEP 1: Patient & complaint ---------- */}
+          {step === 1 && (
+            <section className={styles.card} aria-labelledby="step1-title">
+              <header className={styles.cardHead}>
+                <h2 id="step1-title" className={styles.cardTitle}>
+                  Who is the patient?
+                </h2>
+                <p className={styles.cardDesc}>Pick a registered patient and describe why they came in today.</p>
+              </header>
+
+              <div className={styles.formGroup}>
+                <label htmlFor="patient-search" className={styles.inputLabel}>
+                  Patient *
+                </label>
+                {currentPatient ? (
+                  <div className={styles.patientSelected}>
+                    <Avatar
+                      patientId={currentPatient.patient_id}
+                      firstName={currentPatient.first_name}
+                      lastName={currentPatient.last_name}
+                      photoPath={currentPatient.photo_path}
+                      size={64}
+                    />
+                    <div className={styles.patientSelectedInfo}>
+                      <div className={styles.patientName}>{fullName(currentPatient)}</div>
+                      <div className={styles.patientMeta}>
+                        {ageFrom(currentPatient.date_of_birth) ?? '?'} yrs · {currentPatient.gender} · Blood group{' '}
+                        {currentPatient.blood_type} · ID #{currentPatient.patient_id}
+                      </div>
+                      <div className={styles.lastVisitLine}>
+                        <Icon name="clock" size={13} />
+                        {lastVisitSummary(currentPatient) ?? 'First visit — no previous assessments'}
+                        {currentPatient.records?.length ? (
+                          <button type="button" className={styles.btnLink} onClick={() => onViewHistory(currentPatient.patient_id)}>
+                            View history
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className={styles.btnGhost}
+                      onClick={() => setSelectedPatientId(null)}
+                      id="patient-search"
+                    >
+                      Change
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className={styles.searchField}>
+                      <Icon name="search" size={16} className={styles.searchIcon} />
+                      <input
+                        id="patient-search"
+                        type="search"
+                        className={styles.searchInput}
+                        placeholder="Search by name, ID or blood group…"
+                        value={patientQuery}
+                        onChange={(e) => setPatientQuery(e.target.value)}
+                        autoComplete="off"
+                        autoFocus
+                      />
+                    </div>
+                    <div className={styles.patientPickList} role="listbox" aria-label="Matching patients">
+                      {filteredPatients.length === 0 ? (
+                        <div className={styles.pickListEmpty}>
+                          {patients.length === 0 ? 'No patients registered yet.' : `No patients match “${patientQuery}”.`}
+                        </div>
+                      ) : (
+                        filteredPatients.slice(0, 8).map((p) => (
+                          <button
+                            key={p.patient_id}
+                            type="button"
+                            role="option"
+                            aria-selected={false}
+                            className={styles.pickRow}
+                            onClick={() => setSelectedPatientId(p.patient_id)}
+                          >
+                            <Avatar patientId={p.patient_id} firstName={p.first_name} lastName={p.last_name} photoPath={p.photo_path} size={40} />
+                            <span className={styles.pickRowMain}>
+                              <span className={styles.pickRowName}>{fullName(p)}</span>
+                              <span className={styles.pickRowMeta}>
+                                {ageFrom(p.date_of_birth) ?? '?'} yrs · {p.gender} · {p.blood_type} · #{p.patient_id}
+                                {p.records?.[0] ? ` · last seen ${relativeTime(p.records[0].visit_date)}` : ' · first visit'}
+                              </span>
+                            </span>
+                            {hasAllergies(p) && (
+                              <span className={styles.allergyFlag} title={p.allergies ?? ''}>
+                                <Icon name="alert" size={12} /> Allergy
+                              </span>
+                            )}
+                            <Icon name="arrowRight" size={16} className={styles.pickRowArrow} />
+                          </button>
+                        ))
+                      )}
+                      {filteredPatients.length > 8 && (
+                        <div className={styles.pickListEmpty}>
+                          {filteredPatients.length - 8} more — keep typing to narrow the list.
+                        </div>
+                      )}
+                    </div>
+                    <button type="button" className={styles.btnLink} onClick={onRegister}>
+                      <Icon name="plus" size={14} /> Not registered yet? Register new patient
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {currentPatient && (
+                <div className={styles.profilePill}>
+                  <Field label="Date of birth">{formatDate(currentPatient.date_of_birth)}</Field>
+                  <Field label="Blood group">{currentPatient.blood_type}</Field>
+                  <Field label="Allergies" alert={hasAllergies(currentPatient)}>
+                    {hasAllergies(currentPatient) ? currentPatient.allergies : 'None recorded'}
+                  </Field>
+                  <Field label="Chronic conditions">{currentPatient.chronic_conditions || 'None recorded'}</Field>
+                </div>
+              )}
+
+              <div className={styles.formGroup}>
+                <span className={styles.inputLabel}>Visit type</span>
+                <div className={styles.segmented} role="radiogroup" aria-label="Visit type">
+                  {VISIT_TYPES.map((v) => (
+                    <button
+                      key={v.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={visitType === v.value}
+                      className={`${styles.segment} ${visitType === v.value ? styles.segmentActive : ''}`}
+                      onClick={() => setVisitType(v.value)}
+                    >
+                      {v.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className={styles.formGroup}>
+                <label htmlFor="chief-complaint" className={styles.inputLabel}>
+                  Chief complaint *
+                </label>
+                <textarea
+                  id="chief-complaint"
+                  className={styles.textArea}
+                  rows={2}
+                  placeholder="In the patient's words — e.g. “High fever and headache for 3 days”"
+                  value={chiefComplaint}
+                  onChange={(e) => setChiefComplaint(e.target.value)}
+                />
+                <span className={styles.inputHint}>
+                  Key words like “chest pain” or “unconscious” are picked up by the triage engine.
+                </span>
+              </div>
+
+              <footer className={styles.wizardNav}>
+                <span className={styles.navHint}>
+                  {!currentPatient ? 'Select a patient to continue' : !complaintOk ? 'Enter the chief complaint to continue' : ''}
+                </span>
+                <button type="button" className={styles.btnPrimary} disabled={!step1Ok} onClick={() => setStep(2)}>
+                  Next: Vitals <Icon name="arrowRight" />
+                </button>
+              </footer>
+            </section>
+          )}
+
+          {/* ---------- STEP 2: Vitals ---------- */}
+          {step === 2 && (
+            <section className={styles.card} aria-labelledby="step2-title">
+              <header className={styles.cardHead}>
+                <h2 id="step2-title" className={styles.cardTitle}>
+                  Vital signs
+                </h2>
+                <p className={styles.cardDesc}>
+                  Enter what was measured. Leave anything that wasn&apos;t measured blank — the engine only uses recorded values.
+                </p>
+              </header>
+
+              <div className={styles.vitalsGrid}>
+                {VITAL_DEFS.map((def) => {
+                  const status = getVitalStatus(def.key, vitals[def.key]);
+                  return (
+                    <div
+                      key={def.key}
+                      className={`${styles.vitalBox} ${status.kind === 'danger' || status.kind === 'invalid' ? styles.vitalBoxDanger : status.kind === 'warning' ? styles.vitalBoxWarning : ''}`}
+                    >
+                      <div className={styles.vitalHeader}>
+                        <label htmlFor={`vital-${def.key}`}>{def.label}</label>
+                        <VitalStatusPill status={status} />
+                      </div>
+                      <div className={styles.vitalInputWrap}>
+                        <input
+                          id={`vital-${def.key}`}
+                          type="text"
+                          inputMode={def.inputMode}
+                          className={styles.vitalInput}
+                          value={vitals[def.key]}
+                          onChange={(e) => setVitals({ ...vitals, [def.key]: e.target.value })}
+                          placeholder={def.placeholder}
+                          aria-invalid={status.kind === 'invalid'}
+                          aria-describedby={`vital-${def.key}-hint`}
+                        />
+                        <span className={styles.vitalUnit}>{def.unit}</span>
+                      </div>
+                      <span id={`vital-${def.key}-hint`} className={styles.vitalHint}>
+                        Normal: {def.normal}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <footer className={styles.wizardNav}>
+                <button type="button" className={styles.btnSecondary} onClick={() => setStep(1)}>
+                  <Icon name="arrowLeft" /> Back
+                </button>
+                <span className={styles.navHint}>
+                  {!vitalsOk
+                    ? 'Fix the blood pressure format to continue'
+                    : recordedVitalsCount === 0
+                      ? 'No vitals recorded — you can still continue'
+                      : `${recordedVitalsCount} of ${VITAL_DEFS.length} recorded`}
+                </span>
+                <button type="button" className={styles.btnPrimary} disabled={!vitalsOk} onClick={() => setStep(3)}>
+                  Next: Symptoms <Icon name="arrowRight" />
+                </button>
+              </footer>
+            </section>
+          )}
+
+          {/* ---------- STEP 3: Symptoms ---------- */}
+          {step === 3 && (
+            <section className={styles.card} aria-labelledby="step3-title">
+              <header className={styles.cardHead}>
+                <h2 id="step3-title" className={styles.cardTitle}>
+                  Presenting symptoms
+                </h2>
+                <p className={styles.cardDesc}>Tap each symptom the patient has. You can set severity and duration below.</p>
+              </header>
+
+              <div className={styles.searchField}>
+                <Icon name="search" size={16} className={styles.searchIcon} />
+                <input
+                  type="search"
+                  className={styles.searchInput}
+                  placeholder="Search symptoms…"
+                  value={symptomQuery}
+                  onChange={(e) => setSymptomQuery(e.target.value)}
+                  aria-label="Search symptoms"
+                />
+              </div>
+
+              {symptomsByCategory.length === 0 ? (
+                <div className={styles.pickListEmpty}>
+                  {symptoms.length === 0 ? 'Symptom catalogue is still loading…' : `No symptoms match “${symptomQuery}”.`}
+                </div>
+              ) : (
+                symptomsByCategory.map(([category, syms]) => (
+                  <div key={category} className={styles.symptomGroup}>
+                    <div className={styles.symptomCategory}>{category}</div>
+                    <div className={styles.symptomPills}>
+                      {syms.map((sym) => {
+                        const on = selectedSymptoms.some((s) => s.symptomId === sym.symptom_id);
+                        return (
+                          <button
+                            key={sym.symptom_id}
+                            type="button"
+                            aria-pressed={on}
+                            onClick={() => toggleSymptom(sym)}
+                            className={`${styles.symptomPill} ${on ? styles.symptomPillActive : ''}`}
+                            title={sym.description}
+                          >
+                            <Icon name={on ? 'check' : 'plus'} size={13} />
+                            {sym.symptom_name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))
+              )}
+
+              <div className={styles.selectedSymptoms}>
+                <SectionLabel>Selected symptoms ({selectedSymptoms.length})</SectionLabel>
+                {selectedSymptoms.length === 0 ? (
+                  <p className={styles.mutedText}>Nothing selected yet. You can continue without symptoms if none apply.</p>
+                ) : (
+                  <div className={styles.selectedList}>
+                    {selectedSymptoms.map((s) => {
+                      const catalogue = symptoms.find((x) => x.symptom_id === s.symptomId);
+                      const questions = (catalogue?.follow_up_questions ?? '')
+                        .split(/\?\s*/)
+                        .map((q) => q.trim())
+                        .filter(Boolean)
+                        .map((q) => `${q}?`);
+                      return (
+                      <div key={s.symptomId} className={styles.selectedBlock}>
+                      <div className={styles.selectedRow}>
+                        <span className={styles.selectedName}>{s.name}</span>
+                        <div className={styles.segmented} role="radiogroup" aria-label={`${s.name} severity`}>
+                          {SEVERITY_OPTIONS.map((sev) => (
+                            <button
+                              key={sev}
+                              type="button"
+                              role="radio"
+                              aria-checked={s.severity === sev}
+                              className={`${styles.segment} ${styles.segmentSm} ${s.severity === sev ? styles.segmentActive : ''}`}
+                              onClick={() => updateSymptom(s.symptomId, { severity: sev })}
+                            >
+                              {sev}
+                            </button>
+                          ))}
+                        </div>
+                        <select
+                          className={styles.selectInputSm}
+                          value={s.duration}
+                          onChange={(e) => updateSymptom(s.symptomId, { duration: e.target.value })}
+                          aria-label={`${s.name} duration`}
+                        >
+                          {DURATION_OPTIONS.map((d) => (
+                            <option key={d} value={d}>
+                              {d}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          className={styles.iconButton}
+                          onClick={() => setSelectedSymptoms((prev) => prev.filter((x) => x.symptomId !== s.symptomId))}
+                          aria-label={`Remove ${s.name}`}
+                          title="Remove"
+                        >
+                          <Icon name="x" size={16} />
+                        </button>
+                      </div>
+                      {questions.length > 0 && (
+                        <div className={styles.followUp}>
+                          <span className={styles.followUpLabel}>Ask the patient:</span>
+                          <ul className={styles.followUpList}>
+                            {questions.map((q, i) => (
+                              <li key={i}>{q}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      <input
+                        type="text"
+                        className={styles.notesInput}
+                        placeholder="Notes — e.g. worse at night, started after meals (optional)"
+                        value={s.notes}
+                        onChange={(e) => updateSymptom(s.symptomId, { notes: e.target.value })}
+                        aria-label={`${s.name} notes`}
+                        maxLength={500}
+                      />
+                      </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <footer className={styles.wizardNav}>
+                <button type="button" className={styles.btnSecondary} onClick={() => setStep(2)}>
+                  <Icon name="arrowLeft" /> Back
+                </button>
+                <span className={styles.navHint} />
+                <button type="button" className={styles.btnPrimary} onClick={() => setStep(4)}>
+                  Next: Review <Icon name="arrowRight" />
+                </button>
+              </footer>
+            </section>
+          )}
+
+          {/* ---------- STEP 4: Review & run ---------- */}
+          {step === 4 && (
+            <section className={styles.card} aria-labelledby="step4-title">
+              <header className={styles.cardHead}>
+                <h2 id="step4-title" className={styles.cardTitle}>
+                  Check and run triage
+                </h2>
+                <p className={styles.cardDesc}>
+                  Confirm everything below. Running triage saves the record and sends it to the doctor review queue.
+                </p>
+              </header>
+
+              {submitError && <Notice kind="error">{submitError}</Notice>}
+
+              <div className={styles.reviewGrid}>
+                <div className={styles.reviewCard}>
+                  <SectionLabel
+                    right={
+                      <button type="button" className={styles.btnLink} onClick={() => setStep(1)}>
+                        <Icon name="edit" size={13} /> Edit
+                      </button>
+                    }
+                  >
+                    Patient &amp; visit
+                  </SectionLabel>
+                  <Field label="Patient">{currentPatient ? fullName(currentPatient) : '—'}</Field>
+                  <Field label="Age / sex">
+                    {currentPatient ? `${ageFrom(currentPatient.date_of_birth) ?? '?'} yrs · ${currentPatient.gender}` : '—'}
+                  </Field>
+                  <Field label="Blood group">{currentPatient?.blood_type || '—'}</Field>
+                  <Field label="Allergies" alert={!!currentPatient && hasAllergies(currentPatient)}>
+                    {currentPatient && hasAllergies(currentPatient) ? currentPatient.allergies : 'None recorded'}
+                  </Field>
+                  <Field label="Visit type">{visitTypeLabel(visitType)}</Field>
+                  <Field label="Chief complaint">{chiefComplaint}</Field>
+                </div>
+
+                <div className={styles.reviewCard}>
+                  <SectionLabel
+                    right={
+                      <button type="button" className={styles.btnLink} onClick={() => setStep(2)}>
+                        <Icon name="edit" size={13} /> Edit
+                      </button>
+                    }
+                  >
+                    Vitals
+                  </SectionLabel>
+                  {VITAL_DEFS.map((def) => {
+                    const status = getVitalStatus(def.key, vitals[def.key]);
+                    return (
+                      <div key={def.key} className={styles.reviewVitalRow}>
+                        <span className={styles.fieldLabel}>{def.label}</span>
+                        <span className={styles.reviewVitalValue}>
+                          {vitals[def.key].trim() ? (
+                            <strong>
+                              {vitals[def.key]} {def.unit}
+                            </strong>
+                          ) : (
+                            <span className={styles.mutedText}>—</span>
+                          )}
+                          <VitalStatusPill status={status} />
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className={`${styles.reviewCard} ${styles.reviewCardWide}`}>
+                  <SectionLabel
+                    right={
+                      <button type="button" className={styles.btnLink} onClick={() => setStep(3)}>
+                        <Icon name="edit" size={13} /> Edit
+                      </button>
+                    }
+                  >
+                    Symptoms ({selectedSymptoms.length})
+                  </SectionLabel>
+                  {selectedSymptoms.length === 0 ? (
+                    <p className={styles.mutedText}>No symptoms selected.</p>
+                  ) : (
+                    <div className={styles.chipRow}>
+                      {selectedSymptoms.map((s) => (
+                        <span key={s.symptomId} className={styles.chip} title={s.notes || undefined}>
+                          <strong>{s.name}</strong> · {s.severity} · {s.duration}
+                          {s.notes.trim() ? ` · “${s.notes.trim()}”` : ''}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <footer className={styles.wizardNav}>
+                <button type="button" className={styles.btnSecondary} onClick={() => setStep(3)} disabled={isSubmitting}>
+                  <Icon name="arrowLeft" /> Back
+                </button>
+                <span className={styles.navHint} />
+                <button type="button" className={`${styles.btnPrimary} ${styles.btnLarge}`} disabled={isSubmitting} onClick={runTriage}>
+                  {isSubmitting ? (
+                    <>
+                      <Spinner /> Running triage…
+                    </>
+                  ) : (
+                    <>
+                      <Icon name="zap" /> Run triage &amp; save
+                    </>
+                  )}
+                </button>
+              </footer>
+            </section>
+          )}
+
+          {/* ---------- STEP 5: Result ---------- */}
+          {step === 5 && (
+            <section className={styles.card} aria-labelledby="step5-title">
+              <header className={styles.cardHead}>
+                <h2 id="step5-title" className={styles.cardTitle}>
+                  Triage result
+                </h2>
+                <p className={styles.cardDesc}>
+                  AI-suggested urgency for {currentPatient ? fullName(currentPatient) : 'the patient'}. A doctor confirms or overrides
+                  it in the review queue.
+                </p>
+              </header>
+
+              {!result ? (
+                <EmptyState icon="zap" title="No result to show">
+                  Start a new assessment to run the triage engine.
+                </EmptyState>
+              ) : (
+                <ResultView result={result} recordId={recordId} canReview={canReview} onGoToQueue={onGoToQueue} onNew={resetAll} />
+              )}
+            </section>
+          )}
+        </div>
+
+        {/* ---------- Summary sidebar ---------- */}
+        <aside className={styles.summaryPanel} aria-label="Assessment summary">
+          <div className={styles.summaryTitle}>This assessment</div>
+
+          <SummaryRow label="Patient" done={!!currentPatient} onEdit={!result && step > 1 ? () => setStep(1) : undefined}>
+            {currentPatient ? fullName(currentPatient) : <span className={styles.mutedText}>Not selected</span>}
+          </SummaryRow>
+          <SummaryRow label="Visit" done={complaintOk}>
+            {visitTypeLabel(visitType)}
+            {chiefComplaint.trim() && <span className={styles.summarySub}>{chiefComplaint.trim()}</span>}
+          </SummaryRow>
+          <SummaryRow label="Vitals" done={step > 2} onEdit={!result && step > 2 ? () => setStep(2) : undefined}>
+            {recordedVitalsCount === 0 ? (
+              <span className={styles.mutedText}>{step > 2 ? 'None recorded' : 'Pending'}</span>
+            ) : (
+              <span className={styles.summaryVitals}>
+                {VITAL_DEFS.filter((d) => vitals[d.key].trim()).map((d) => {
+                  const st = getVitalStatus(d.key, vitals[d.key]);
+                  return (
+                    <span
+                      key={d.key}
+                      className={`${styles.summaryVital} ${st.kind === 'danger' || st.kind === 'invalid' ? styles.textDanger : st.kind === 'warning' ? styles.textWarn : ''}`}
+                      title={`${d.label}: ${st.label}`}
+                    >
+                      {vitals[d.key]}
+                      {d.unit === '%' ? '%' : ` ${d.unit}`}
+                    </span>
+                  );
+                })}
+              </span>
+            )}
+          </SummaryRow>
+          <SummaryRow label="Symptoms" done={step > 3} onEdit={!result && step > 3 ? () => setStep(3) : undefined}>
+            {selectedSymptoms.length === 0 ? (
+              <span className={styles.mutedText}>{step > 3 ? 'None' : 'Pending'}</span>
+            ) : (
+              <span className={styles.chipRow}>
+                {selectedSymptoms.map((s) => (
+                  <span key={s.symptomId} className={styles.chipSm}>
+                    {s.name}
+                  </span>
+                ))}
+              </span>
+            )}
+          </SummaryRow>
+          {result && (
+            <SummaryRow label="Result" done>
+              <LevelBadge level={result.urgency_level} />
+            </SummaryRow>
+          )}
+
+          {!result && step > 1 && (
+            <button type="button" className={styles.btnLink} onClick={resetAll} style={{ marginTop: '0.75rem' }}>
+              <Icon name="x" size={13} /> Discard and start over
+            </button>
+          )}
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Sub-components ---------------- */
+
+function SummaryRow({
+  label,
+  done,
+  onEdit,
+  children,
+}: {
+  label: string;
+  done?: boolean;
+  onEdit?: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={styles.summaryRow}>
+      <span className={`${styles.summaryDot} ${done ? styles.summaryDotDone : ''}`} aria-hidden="true" />
+      <div className={styles.summaryBody}>
+        <div className={styles.summaryLabelRow}>
+          <span className={styles.summaryLabel}>{label}</span>
+          {onEdit && (
+            <button type="button" className={styles.btnLink} onClick={onEdit}>
+              Edit
+            </button>
+          )}
+        </div>
+        <div className={styles.summaryValue}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function ResultView({
+  result,
+  recordId,
+  canReview,
+  onGoToQueue,
+  onNew,
+}: {
+  result: TriageResult;
+  recordId: number | null;
+  canReview: boolean;
+  onGoToQueue: () => void;
+  onNew: () => void;
+}) {
+  const level = clampLevel(result.urgency_level);
+  const meta = TRIAGE_LEVELS[level];
+  const diffs = result.differential_diagnoses ?? [];
+  const tests = result.recommended_tests ?? [];
+
+  return (
+    <div>
+      <div className={`${styles.resultBanner} ${levelClass(level)}`}>
+        <div className={styles.resultLevelNum} aria-hidden="true">
+          {level}
+        </div>
+        <div>
+          <div className={styles.resultKicker}>Triage level {level} of 5</div>
+          <div className={styles.resultTitle}>{meta.label}</div>
+          <div className={styles.resultHint}>{meta.hint}</div>
+        </div>
+      </div>
+
+      <div className={styles.resultSection}>
+        <SectionLabel>Why this level</SectionLabel>
+        <p className={styles.reasoningText}>{result.reasoning}</p>
+      </div>
+
+      {diffs.length > 0 && (
+        <div className={styles.resultSection}>
+          <SectionLabel>Possible conditions</SectionLabel>
+          <div className={styles.diffList}>
+            {diffs.map((d, idx) => {
+              const pct = typeof d.probability === 'number' ? Math.round(d.probability <= 1 ? d.probability * 100 : d.probability) : 0;
+              return (
+                <div key={idx} className={styles.diffItem}>
+                  <div className={styles.diffTop}>
+                    <span className={styles.diffName}>{d.condition}</span>
+                    <span className={styles.diffProb}>{percent(d.probability)}</span>
+                  </div>
+                  <div className={styles.diffBar} aria-hidden="true">
+                    <div className={styles.diffBarFill} style={{ width: `${Math.min(100, Math.max(0, pct))}%` }} />
+                  </div>
+                  <div className={styles.diffRationale}>{d.rationale}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {tests.length > 0 && (
+        <div className={styles.resultSection}>
+          <SectionLabel>Suggested tests</SectionLabel>
+          <div className={styles.chipRow}>
+            {tests.map((t, idx) => (
+              <span key={idx} className={styles.testChip}>
+                <Icon name="flask" size={13} /> {t}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <Notice kind="success">
+        {recordId ? (
+          <>
+            Saved as record <strong>#{recordId}</strong> and added to the doctor review queue.
+          </>
+        ) : (
+          'Saved to the facility database.'
+        )}{' '}
+        This is decision support — the attending doctor makes the final call.
+      </Notice>
+
+      <div className={styles.resultActions}>
+        <button type="button" className={styles.btnPrimary} onClick={onNew}>
+          <Icon name="plus" /> Triage another patient
+        </button>
+        {canReview && (
+          <button type="button" className={styles.btnSecondary} onClick={onGoToQueue}>
+            Open review queue <Icon name="arrowRight" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}

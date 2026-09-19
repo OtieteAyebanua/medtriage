@@ -1,0 +1,135 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Table 3.3.3.1: Healthcare Workers
+model HealthcareWorker {
+  user_id       Int             @id @default(autoincrement())
+  first_name    String
+  middle_name   String?
+  last_name     String
+  employee_id   String          @unique
+  gender        String
+  email         String          @unique
+  password_hash String
+  position      String // doctor, nurse, lab_tech, pharmacist, admin
+  created_at    DateTime        @default(now())
+
+  // Relations to PatientRecords
+  recorded_records PatientRecord[] @relation("RecordedBy")
+  assigned_records PatientRecord[] @relation("AssignedTo")
+  treated_records  PatientRecord[] @relation("TreatedBy")
+
+  // Sessions
+  sessions         Session[]
+
+  @@map("healthcare_workers")
+}
+
+// Auth Sessions — token-based, 1-day expiry
+model Session {
+  id         Int              @id @default(autoincrement())
+  token      String           @unique
+  user_id    Int
+  expires_at DateTime
+  created_at DateTime         @default(now())
+
+  worker     HealthcareWorker @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+// Table 3.3.3.2: Patients
+model Patient {
+  patient_id         Int             @id @default(autoincrement())
+  first_name         String
+  middle_name        String?
+  last_name          String
+  date_of_birth      DateTime
+  gender             String
+  email              String?
+  blood_type         String // A+, A-, B+, B-, AB+, AB-, O+, O-
+  allergies          String?
+  chronic_conditions String?
+  photo_path         String? // relative path inside UPLOAD_DIR, e.g. patients/12-1700000000.jpg
+  created_at         DateTime        @default(now())
+
+  records            PatientRecord[]
+
+  @@map("patients")
+}
+
+// Table 3.3.3.3: PatientRecords
+model PatientRecord {
+  record_id                 Int              @id @default(autoincrement())
+  patient_id                Int
+  recorded_by               Int
+  visit_type                String // emergency, walk_in, referral, follow_up
+  chief_complaint           String
+  vitals_temperature        Float?
+  vitals_blood_pressure     String? // e.g. 120/80
+  vitals_heart_rate         Int?
+  vitals_oxygen_level       Float?
+  vitals_respiratory_rate   Int?
+  ai_urgency_score          Int // 1 to 5
+  ai_triage_level           String // immediate, emergent, urgent, less_urgent, non_urgent
+  ai_confidence             Float? // 0 to 1, model confidence in the assigned level (null for rule-based engine)
+  ai_reasoning              String
+  ai_suggested_tests        String?
+  ai_differential_diagnosis String?
+  assigned_to               Int?
+  override_status           String           @default("pending") // accepted, overridden, pending
+  override_reason           String?
+  final_triage_level        String?
+  diagnosis                 String?
+  treated_by                Int?
+  status                    String           @default("waiting") // waiting, triaged, in_progress, treated, discharged, referred
+  is_current                Boolean          @default(true)
+  visit_date                DateTime         @default(now())
+
+  // Foreign Key Relations
+  patient                   Patient          @relation(fields: [patient_id], references: [patient_id], onDelete: Cascade)
+  recorder                  HealthcareWorker @relation("RecordedBy", fields: [recorded_by], references: [user_id])
+  assignee                  HealthcareWorker? @relation("AssignedTo", fields: [assigned_to], references: [user_id])
+  treater                   HealthcareWorker? @relation("TreatedBy", fields: [treated_by], references: [user_id])
+
+  record_symptoms           RecordSymptom[]
+
+  @@map("patient_records")
+}
+
+// Table 3.3.3.4: Symptoms
+model Symptom {
+  symptom_id          Int             @id @default(autoincrement())
+  symptom_name        String          @unique
+  category            String // neurological, respiratory, cardiac, gastrointestinal, systemic, etc.
+  description         String
+  severity_scale      Int // 1 to 5 baseline urgency weight
+  related_conditions  String?
+  synonyms            String?
+  follow_up_questions String?
+
+  record_symptoms     RecordSymptom[]
+
+  @@map("symptoms")
+}
+
+// Table 3.3.3.5: RecordSymptoms
+model RecordSymptom {
+  record_symptom_id Int           @id @default(autoincrement())
+  record_id         Int
+  symptom_id        Int
+  severity          String // mild, moderate, severe
+  duration          String
+  notes             String?
+
+  record            PatientRecord @relation(fields: [record_id], references: [record_id], onDelete: Cascade)
+  symptom           Symptom       @relation(fields: [symptom_id], references: [symptom_id], onDelete: Restrict)
+
+  @@map("record_symptoms")
+}
