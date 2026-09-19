@@ -1,0 +1,16 @@
+{
+  "name": "MedTriage AI",
+  "short_name": "MedTriage",
+  "description": "AI-assisted triage and differential diagnosis for primary healthcare facilities. Runs on the facility LAN, no internet required.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f8f5ee",
+  "theme_color": "#0d9488",
+  "lang": "en",
+  "categories": ["medical", "health", "productivity"],
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icon-512.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
