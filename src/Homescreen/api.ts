@@ -1,13 +1,20 @@
 /**
  * fetch() wrapper for the client. On a 401 (session expired / signed out
  * elsewhere) it broadcasts an event so the shell can return to the login screen.
+ * The dispatch is debounced so concurrent 401s (e.g. several parallel requests
+ * all failing because the session expired) only trigger one logout.
  */
 export const UNAUTHENTICATED_EVENT = 'medtriage:unauthenticated';
 
+let unauthTimer: ReturnType<typeof setTimeout> | null = null;
+
 export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const res = await fetch(input, init);
-  if (res.status === 401 && typeof window !== 'undefined') {
-    window.dispatchEvent(new Event(UNAUTHENTICATED_EVENT));
+  if (res.status === 401 && typeof window !== 'undefined' && !unauthTimer) {
+    unauthTimer = setTimeout(() => {
+      window.dispatchEvent(new Event(UNAUTHENTICATED_EVENT));
+      unauthTimer = null;
+    }, 50);
   }
   return res;
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Auth, { HealthcareWorker } from '@/auth';
 import Homescreen from '@/Homescreen';
 
@@ -8,12 +8,20 @@ const STORAGE_KEY = 'medtriage_user';
 const STORAGE_EXPIRY_KEY = 'medtriage_user_expiry';
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 1 day
 
+function clearLocalSession() {
+  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(STORAGE_EXPIRY_KEY);
+}
+
 export default function Home() {
   const [currentUser, setCurrentUser] = useState<HealthcareWorker | null>(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
 
-  // On mount: check localStorage for cached user, then validate against backend session
+  // On mount: check localStorage for cached user, then validate against backend session.
+  // Uses an `ignore` flag so that stale calls (React Strict Mode double-mount) are no-ops.
   useEffect(() => {
+    let ignore = false;
+
     const restoreSession = async () => {
       try {
         const storedUser = localStorage.getItem(STORAGE_KEY);
@@ -25,12 +33,14 @@ export default function Home() {
           // Check if localStorage cache is expired
           if (Date.now() > expiryTime) {
             clearLocalSession();
-            setIsCheckingSession(false);
+            if (!ignore) setIsCheckingSession(false);
             return;
           }
 
           // Validate the server-side session cookie
           const res = await fetch('/api/auth/session');
+          if (ignore) return;       // component unmounted during fetch — bail out
+
           if (res.ok) {
             const data = await res.json();
             if (data.authenticated && data.worker) {
@@ -48,25 +58,21 @@ export default function Home() {
         clearLocalSession();
       }
 
-      setIsCheckingSession(false);
+      if (!ignore) setIsCheckingSession(false);
     };
 
     restoreSession();
+    return () => { ignore = true; };
   }, []);
 
-  const clearLocalSession = () => {
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(STORAGE_EXPIRY_KEY);
-  };
-
-  const handleLoginSuccess = (worker: HealthcareWorker) => {
+  const handleLoginSuccess = useCallback((worker: HealthcareWorker) => {
     // Save to localStorage with 1-day TTL
     localStorage.setItem(STORAGE_KEY, JSON.stringify(worker));
     localStorage.setItem(STORAGE_EXPIRY_KEY, String(Date.now() + SESSION_TTL_MS));
     setCurrentUser(worker);
-  };
+  }, []);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
     } catch (err) {
@@ -74,7 +80,7 @@ export default function Home() {
     }
     clearLocalSession();
     setCurrentUser(null);
-  };
+  }, []);
 
   // Show a loading state while checking the session
   if (isCheckingSession) {
