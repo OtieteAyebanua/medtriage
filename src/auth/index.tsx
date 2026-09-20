@@ -1,17 +1,8 @@
-'use client';
-
 import React, { useState } from 'react';
 import './style.css';
+import { HealthcareWorker, loginWithCredentials, STAFF_DIRECTORY } from './authService';
 
-export interface HealthcareWorker {
-  userId: number;
-  firstName: string;
-  lastName: string;
-  employeeId: string;
-  email: string;
-  position: 'doctor' | 'nurse' | 'lab_tech' | 'pharmacist' | 'admin';
-  gender: string;
-}
+export type { HealthcareWorker } from './authService';
 
 interface AuthProps {
   onLoginSuccess?: (worker: HealthcareWorker) => void;
@@ -24,36 +15,15 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    if (!employeeId.trim()) {
-      setError('Enter your employee ID or email to sign in.');
-      return;
-    }
-
-    if (!password) {
-      setError('Enter your password.');
-      return;
-    }
-
+  const performLogin = async (id: string, pass: string) => {
     setIsLoading(true);
-
+    setError(null);
     try {
-      // Simulate network delay
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      
-      if (onLoginSuccess) {
-        onLoginSuccess({
-          userId: 1,
-          employeeId: employeeId.trim(),
-          firstName: 'Demo',
-          lastName: 'User',
-          email: 'demo@example.com',
-          position: 'doctor',
-          gender: 'Female'
-        });
+      const res = await loginWithCredentials(id, pass);
+      if (res.success && res.worker) {
+        onLoginSuccess?.(res.worker);
+      } else {
+        setError(res.error || 'Invalid credentials.');
       }
     } catch (err) {
       console.error(err);
@@ -63,8 +33,27 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!employeeId.trim()) {
+      setError('Enter your employee ID or email to sign in.');
+      return;
+    }
+    if (!password) {
+      setError('Enter your password.');
+      return;
+    }
+    await performLogin(employeeId, password);
+  };
+
+  const handleQuickDemo = (worker: HealthcareWorker) => {
+    setEmployeeId(worker.employeeId);
+    setPassword('demo123');
+    performLogin(worker.employeeId, 'demo123');
+  };
+
   return (
-    <div className="auth-fullscreen-split" suppressHydrationWarning>
+    <div className="auth-fullscreen-split">
       {/* Left Half of the Screen: Full Height Image */}
       <div className="auth-image-panel">
         <img
@@ -88,6 +77,62 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
             <p className="auth-subtitle">Sign in to start triaging patients</p>
           </div>
 
+          {/* Quick Demo Sign-in Helpers */}
+          <div style={{
+            marginBottom: '1.5rem',
+            padding: '1rem',
+            backgroundColor: '#f0fdfa',
+            border: '1px solid #99f6e4',
+            borderRadius: '0.6rem',
+            textAlign: 'left'
+          }}>
+            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f766e', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Quick Demo Sign-In
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => handleQuickDemo(STAFF_DIRECTORY[0])}
+                disabled={isLoading}
+                style={{
+                  background: '#ffffff',
+                  border: '1px solid #0d9488',
+                  color: '#0d9488',
+                  padding: '0.4rem 0.75rem',
+                  borderRadius: '0.4rem',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem'
+                }}
+              >
+                🩺 Dr. Amina Bello (Doctor)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickDemo(STAFF_DIRECTORY[1])}
+                disabled={isLoading}
+                style={{
+                  background: '#ffffff',
+                  border: '1px solid #0d9488',
+                  color: '#0d9488',
+                  padding: '0.4rem 0.75rem',
+                  borderRadius: '0.4rem',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem'
+                }}
+              >
+                💉 Grace Okafor (Nurse)
+              </button>
+            </div>
+          </div>
+
           {error && (
             <div className="auth-error-banner" role="alert">
               {error}
@@ -104,7 +149,7 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
                   id="employeeId"
                   type="text"
                   className="form-input"
-                  placeholder="e.g. HW-DOC-001"
+                  placeholder="e.g. HW-DOC-001 or HW-NUR-002"
                   value={employeeId}
                   onChange={(e) => setEmployeeId(e.target.value)}
                   autoComplete="username"
