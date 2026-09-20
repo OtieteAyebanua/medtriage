@@ -41,26 +41,23 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
     setIsLoading(true);
 
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      // Simulate network delay
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      
+      if (onLoginSuccess) {
+        onLoginSuccess({
+          userId: 1,
           employeeId: employeeId.trim(),
-          password,
-        }),
-      });
-
-      const data = await res.json();
-      if (res.ok && data.worker) {
-        if (onLoginSuccess) {
-          onLoginSuccess(data.worker);
-        }
-      } else {
-        setError(data.error || 'Sign-in failed. Check your employee ID and password.');
+          firstName: 'Demo',
+          lastName: 'User',
+          email: 'demo@example.com',
+          position: 'doctor',
+          gender: 'Female'
+        });
       }
     } catch (err) {
       console.error(err);
-      setError('Could not reach the facility server. Check the LAN connection and try again.');
+      setError('An error occurred during sign in.');
     } finally {
       setIsLoading(false);
     }

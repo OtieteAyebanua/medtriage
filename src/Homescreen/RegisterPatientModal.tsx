@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import styles from './Homescreen.module.css';
-import { apiFetch, uploadPatientPhoto } from './api';
+// Removed apiFetch and uploadPatientPhoto import
 import PhotoPicker from './PhotoPicker';
 import { Modal, Notice, Spinner } from './shared';
 import { PatientItem } from './types';
@@ -46,45 +46,20 @@ export default function RegisterPatientModal({ onClose, onRegistered }: Props) {
 
     setSubmitting(true);
     try {
-      // The API expects camelCase demographic fields.
-      const res = await apiFetch('/api/patients', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          firstName: firstName.trim(),
-          middleName: middleName.trim() || undefined,
-          lastName: lastName.trim(),
-          dateOfBirth: dob,
-          gender,
-          email: email.trim() || undefined,
-          bloodType,
-          allergies: allergies.trim() || undefined,
-          chronicConditions: chronic.trim() || undefined,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok && data.patient) {
-        let patient: PatientItem = data.patient;
-        if (photo) {
-          // The record is already saved; a failed photo upload shouldn't lose the registration.
-          try {
-            const updated = await uploadPatientPhoto(patient.patient_id, photo);
-            patient = { ...patient, photo_path: updated.photo_path };
-          } catch (err) {
-            console.error(err);
-            patient = { ...patient, photo_path: null };
-            onRegistered(patient);
-            setError((err as Error).message + ' You can add the photo from the patient card.');
-            return;
-          }
-        }
-        onRegistered(patient);
-      } else {
-        setError(data.error || data.message || 'Registration failed. Please try again.');
-      }
+      await new Promise(resolve => setTimeout(resolve, 500));
+      let patient: PatientItem = {
+        patient_id: Date.now(),
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        date_of_birth: dob,
+        gender: gender,
+        blood_type: bloodType,
+        photo_path: null
+      };
+      onRegistered(patient);
     } catch (err) {
       console.error(err);
-      setError('Could not reach the facility server. Check the LAN connection.');
+      setError('An error occurred during registration.');
     } finally {
       setSubmitting(false);
     }

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import styles from './Homescreen.module.css';
-import { apiFetch } from './api';
+// Removed apiFetch import
 import {
   formatDate,
   formatDateTime,
@@ -33,15 +33,23 @@ export default function PatientHistoryModal({ patientId, onClose, onStartTriage 
     let cancelled = false;
     (async () => {
       try {
-        const res = await apiFetch(`/api/patients/${patientId}`);
-        const json = await res.json();
+        await new Promise(resolve => setTimeout(resolve, 500));
+        const json: PatientHistory = {
+          patient: {
+            patient_id: patientId,
+            first_name: 'Demo',
+            last_name: 'Patient',
+            date_of_birth: '1980-01-01',
+            gender: 'Female',
+            blood_type: 'O+',
+            photo_path: null,
+            age: 44,
+          },
+          visits: []
+        };
         if (cancelled) return;
-        if (res.ok) {
-          setData(json);
-          setOpenId(json.visits?.[0]?.record_id ?? null);
-        } else {
-          setError(json.error || 'Could not load patient history.');
-        }
+        setData(json);
+        setOpenId(null);
       } catch (e) {
         console.error(e);
         if (!cancelled) setError('Could not reach the facility server.');

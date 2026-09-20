@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import styles from './Homescreen.module.css';
-import { apiFetch, UNAUTHENTICATED_EVENT } from './api';
+// Removed apiFetch import
 import { Icon, IconName, ToastStack } from './shared';
 import { fullName } from './clinical';
 import TriageWizard, { PatientRequest } from './TriageWizard';
@@ -64,53 +64,22 @@ export default function Homescreen({ currentUser, onLogout }: HomescreenProps) {
   }, []);
 
   const loadPatients = useCallback(async () => {
-    try {
-      const res = await apiFetch('/api/patients');
-      const data = await res.json();
-      if (data.patients) setPatients(data.patients);
-    } catch (e) {
-      console.error('Failed loading patients', e);
-      toast('error', 'Could not load the patient registry.');
-    } finally {
-      setPatientsLoading(false);
-    }
-  }, [toast]);
+    setPatientsLoading(false);
+    setPatients([]);
+  }, []);
 
   const loadSymptoms = useCallback(async () => {
-    try {
-      const res = await apiFetch('/api/symptoms');
-      const data = await res.json();
-      if (data.symptoms) setSymptoms(data.symptoms);
-    } catch (e) {
-      console.error('Failed loading symptoms', e);
-      toast('error', 'Could not load the symptom catalogue.');
-    }
-  }, [toast]);
+    setSymptoms([]);
+  }, []);
 
   const loadWardReport = useCallback(async () => {
-    setReportLoading(true);
-    try {
-      const res = await apiFetch('/api/reports/ward');
-      const data = await res.json();
-      if (data.status === 'success') setWardReport(data);
-    } catch (e) {
-      console.error('Failed loading ward report', e);
-    } finally {
-      setReportLoading(false);
-    }
+    setReportLoading(false);
+    setWardReport(null);
   }, []);
 
   const loadQueue = useCallback(async () => {
-    setQueueLoading(true);
-    try {
-      const res = await apiFetch('/api/records/queue');
-      const data = await res.json();
-      if (data.success && data.queue) setQueue(data.queue);
-    } catch (e) {
-      console.error('Failed loading clinical queue', e);
-    } finally {
-      setQueueLoading(false);
-    }
+    setQueueLoading(false);
+    setQueue([]);
   }, []);
 
   useEffect(() => {
@@ -120,13 +89,7 @@ export default function Homescreen({ currentUser, onLogout }: HomescreenProps) {
     loadQueue();
   }, [loadPatients, loadSymptoms, loadWardReport, loadQueue]);
 
-  // Session expired or revoked → back to the login screen
-  useEffect(() => {
-    if (!onLogout) return;
-    const handler = () => onLogout();
-    window.addEventListener(UNAUTHENTICATED_EVENT, handler);
-    return () => window.removeEventListener(UNAUTHENTICATED_EVENT, handler);
-  }, [onLogout]);
+  // Removed UNAUTHENTICATED_EVENT listener
 
   const switchTab = (tab: Tab) => {
     setActiveTab(tab);

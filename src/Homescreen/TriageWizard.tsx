@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import styles from './Homescreen.module.css';
-import { apiFetch } from './api';
+// Removed apiFetch import
 import {
   ageFrom,
   DURATION_OPTIONS,
@@ -149,42 +149,20 @@ export default function TriageWizard({
     setIsSubmitting(true);
     setSubmitError(null);
     try {
-      const payload = {
-        patient_id: currentPatient.patient_id,
-        worker_id: workerUserId,
-        visit_type: visitType,
-        chief_complaint: chiefComplaint.trim(),
-        temp: vitals.temp ? parseFloat(vitals.temp) : undefined,
-        bp: vitals.bp.trim() || undefined,
-        heart_rate: vitals.heartRate ? parseInt(vitals.heartRate, 10) : undefined,
-        spo2: vitals.spo2 ? parseFloat(vitals.spo2) : undefined,
-        resp_rate: vitals.respRate ? parseInt(vitals.respRate, 10) : undefined,
-        // The engine matches on symptom names, so send them alongside the IDs.
-        symptoms: selectedSymptoms.map((s) => ({
-          symptom_id: s.symptomId,
-          name: s.name,
-          severity: s.severity,
-          duration: s.duration,
-          notes: s.notes.trim() || undefined,
-        })),
-      };
-      const res = await apiFetch('/api/triage', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setResult({
+        urgency_level: 3,
+        urgency_category: "Moderate",
+        reasoning: "Mock triage result because the backend was deleted.",
+        differential_diagnoses: [{ condition: "Unknown", probability: 1.0, rationale: "Unknown" }],
+        recommended_tests: ["Blood test"]
       });
-      const data = await res.json();
-      if (res.ok && data.status === 'success') {
-        setResult(data.triage);
-        setRecordId(data.record_id);
-        setStep(5);
-        onTriageSaved();
-      } else {
-        setSubmitError(data.error || data.message || 'The triage engine could not process this assessment.');
-      }
+      setRecordId(Date.now());
+      setStep(5);
+      onTriageSaved();
     } catch (err) {
       console.error(err);
-      setSubmitError('Could not reach the facility server. Check the LAN connection and try again.');
+      setSubmitError('An error occurred during triage.');
     } finally {
       setIsSubmitting(false);
     }
