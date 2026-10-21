@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import styles from './Homescreen.module.css';
-// Removed apiFetch and uploadPatientPhoto import
+import { errorMessage, registerPatient, uploadPatientPhoto } from '@/api';
 import PhotoPicker from './PhotoPicker';
 import { Modal, Notice, Spinner } from './shared';
 import { PatientItem } from './types';
@@ -11,7 +11,8 @@ const BLOOD_TYPES = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'];
 
 interface Props {
   onClose: () => void;
-  onRegistered: (patient: PatientItem) => void;
+  /** `warning` is set when the patient was saved but the photo upload failed */
+  onRegistered: (patient: PatientItem, warning?: string) => void;
 }
 
 export default function RegisterPatientModal({ onClose, onRegistered }: Props) {
@@ -45,24 +46,36 @@ export default function RegisterPatientModal({ onClose, onRegistered }: Props) {
     if (!isValid) return;
 
     setSubmitting(true);
+    let patient: PatientItem;
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      let patient: PatientItem = {
-        patient_id: Date.now(),
-        first_name: firstName.trim(),
-        last_name: lastName.trim(),
-        date_of_birth: dob,
-        gender: gender,
-        blood_type: bloodType,
-        photo_path: null
-      };
-      onRegistered(patient);
+      patient = await registerPatient({
+        firstName: firstName.trim(),
+        middleName: middleName.trim() || undefined,
+        lastName: lastName.trim(),
+        dateOfBirth: dob,
+        gender,
+        email: email.trim() || undefined,
+        bloodType,
+        allergies: allergies.trim() || undefined,
+        chronicConditions: chronic.trim() || undefined,
+      });
     } catch (err) {
-      console.error(err);
-      setError('An error occurred during registration.');
-    } finally {
+      setError(errorMessage(err, 'Could not register the patient.'));
       setSubmitting(false);
+      return;
     }
+
+    // The patient is saved at this point; a failed photo upload shouldn't undo that
+    let warning: string | undefined;
+    if (photo) {
+      try {
+        patient = await uploadPatientPhoto(patient.patient_id, photo);
+      } catch (err) {
+        warning = `Photo not saved: ${errorMessage(err)} You can add it from the Patients tab.`;
+      }
+    }
+    setSubmitting(false);
+    onRegistered(patient, warning);
   };
 
   const formId = 'register-patient-form';

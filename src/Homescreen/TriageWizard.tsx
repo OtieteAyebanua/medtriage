@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import styles from './Homescreen.module.css';
-// Removed apiFetch import
+import { errorMessage, runTriage as runTriageRequest } from '@/api';
 import {
   ageFrom,
   DURATION_OPTIONS,
@@ -44,7 +44,6 @@ export interface PatientRequest {
 interface Props {
   patients: PatientItem[];
   symptoms: SymptomItem[];
-  workerUserId: number;
   canReview: boolean;
   patientRequest: PatientRequest | null;
   onRegister: () => void;
@@ -56,7 +55,6 @@ interface Props {
 export default function TriageWizard({
   patients,
   symptoms,
-  workerUserId,
   canReview,
   patientRequest,
   onRegister,
@@ -149,20 +147,32 @@ export default function TriageWizard({
     setIsSubmitting(true);
     setSubmitError(null);
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setResult({
-        urgency_level: 3,
-        urgency_category: "Moderate",
-        reasoning: "Mock triage result because the backend was deleted.",
-        differential_diagnoses: [{ condition: "Unknown", probability: 1.0, rationale: "Unknown" }],
-        recommended_tests: ["Blood test"]
+      // Blank vitals were not measured and are sent as null
+      const num = (raw: string) => (raw.trim() ? Number(raw.trim()) : null);
+      const data = await runTriageRequest({
+        patientId: currentPatient.patient_id,
+        visitType,
+        chiefComplaint: chiefComplaint.trim(),
+        vitals: {
+          temperature: num(vitals.temp),
+          bloodPressure: vitals.bp.trim() || null,
+          heartRate: num(vitals.heartRate),
+          oxygenLevel: num(vitals.spo2),
+          respiratoryRate: num(vitals.respRate),
+        },
+        symptoms: selectedSymptoms.map((s) => ({
+          symptomId: s.symptomId,
+          severity: s.severity,
+          duration: s.duration,
+          notes: s.notes.trim() || null,
+        })),
       });
-      setRecordId(Date.now());
+      setResult(data.triage);
+      setRecordId(data.record_id);
       setStep(5);
       onTriageSaved();
     } catch (err) {
-      console.error(err);
-      setSubmitError('An error occurred during triage.');
+      setSubmitError(errorMessage(err, 'Could not run the triage assessment.'));
     } finally {
       setIsSubmitting(false);
     }

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import styles from './Homescreen.module.css';
-import { PHOTO_ACCEPT, PHOTO_MAX_BYTES } from './api';
+import { PHOTO_ACCEPT, PHOTO_MAX_BYTES } from '@/api';
 import { Avatar, Icon } from './shared';
 
 interface Props {

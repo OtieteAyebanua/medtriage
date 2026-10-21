@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import './style.css';
-import { HealthcareWorker, loginWithCredentials, STAFF_DIRECTORY } from './authService';
+import { DEMO_PASSWORD, HealthcareWorker, loginWithCredentials, STAFF_DIRECTORY } from './authService';
 
 export type { HealthcareWorker } from './authService';
 
@@ -46,10 +46,10 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
     await performLogin(employeeId, password);
   };
 
-  const handleQuickDemo = (worker: HealthcareWorker) => {
+  const handleQuickDemo = (worker: (typeof STAFF_DIRECTORY)[number]) => {
     setEmployeeId(worker.employeeId);
-    setPassword('demo123');
-    performLogin(worker.employeeId, 'demo123');
+    setPassword(DEMO_PASSWORD);
+    performLogin(worker.employeeId, DEMO_PASSWORD);
   };
 
   return (

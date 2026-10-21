@@ -1,6 +1,9 @@
+import { errorMessage, login } from '../api';
+
 export interface HealthcareWorker {
   userId: number;
   firstName: string;
+  middleName?: string | null;
   lastName: string;
   employeeId: string;
   email: string;
@@ -8,90 +11,22 @@ export interface HealthcareWorker {
   gender: string;
 }
 
-export const STAFF_DIRECTORY: HealthcareWorker[] = [
-  {
-    userId: 1,
-    employeeId: 'HW-DOC-001',
-    firstName: 'Amina',
-    lastName: 'Bello',
-    gender: 'Female',
-    email: 'amina.bello@hospital.lan',
-    position: 'doctor',
-  },
-  {
-    userId: 2,
-    employeeId: 'HW-NUR-002',
-    firstName: 'Grace',
-    lastName: 'Okafor',
-    gender: 'Female',
-    email: 'grace.okafor@hospital.lan',
-    position: 'nurse',
-  },
-  {
-    userId: 3,
-    employeeId: 'HW-NUR-003',
-    firstName: 'Ibrahim',
-    lastName: 'Danladi',
-    gender: 'Male',
-    email: 'ibrahim.danladi@hospital.lan',
-    position: 'nurse',
-  },
-  {
-    userId: 4,
-    employeeId: 'HW-LAB-004',
-    firstName: 'Samuel',
-    lastName: 'Adeyemi',
-    gender: 'Male',
-    email: 'samuel.adeyemi@hospital.lan',
-    position: 'lab_tech',
-  },
-  {
-    userId: 5,
-    employeeId: 'HW-ADM-005',
-    firstName: 'Khadija',
-    lastName: 'Umar',
-    gender: 'Female',
-    email: 'admin@hospital.lan',
-    position: 'admin',
-  },
-  {
-    userId: 6,
-    employeeId: 'HW-DOC-006',
-    firstName: 'Chukwuemeka',
-    lastName: 'Obi',
-    gender: 'Male',
-    email: 'emeka.obi@hospital.lan',
-    position: 'doctor',
-  },
+/** Accounts behind the "Quick Demo Sign-In" buttons. They exist in the server's demo data (password demo123). */
+export const STAFF_DIRECTORY: Array<Pick<HealthcareWorker, 'employeeId' | 'firstName' | 'lastName' | 'position'>> = [
+  { employeeId: 'HW-DOC-001', firstName: 'Amina', lastName: 'Bello', position: 'doctor' },
+  { employeeId: 'HW-NUR-002', firstName: 'Grace', lastName: 'Okafor', position: 'nurse' },
 ];
+
+export const DEMO_PASSWORD = 'demo123';
 
 export async function loginWithCredentials(
   identifier: string,
-  _password?: string,
+  password: string,
 ): Promise<{ success: boolean; worker?: HealthcareWorker; error?: string }> {
-  // Simulate minimal realistic authentication latency
-  await new Promise((resolve) => setTimeout(resolve, 300));
-
-  const clean = identifier.trim().toLowerCase();
-  const worker = STAFF_DIRECTORY.find(
-    (w) => w.employeeId.toLowerCase() === clean || w.email.toLowerCase() === clean,
-  );
-
-  if (worker) {
+  try {
+    const worker = await login(identifier.trim(), password);
     return { success: true, worker };
+  } catch (err) {
+    return { success: false, error: errorMessage(err, 'Sign-in failed. Please try again.') };
   }
-
-  // Fallback demo user if custom ID is entered
-  return {
-    success: true,
-    worker: {
-      userId: 99,
-      employeeId: identifier.trim().toUpperCase(),
-      firstName: 'Clinical',
-      lastName: 'Staff',
-      email: `${identifier.trim().toLowerCase()}@hospital.lan`,
-      position: identifier.toLowerCase().includes('doc') ? 'doctor' : 'nurse',
-      gender: 'Unspecified',
-    },
-  };
 }

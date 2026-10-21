@@ -1,49 +1,66 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import Auth, { HealthcareWorker } from '@/auth';
 import Homescreen from '@/Homescreen';
-
-const STORAGE_KEY = 'medtriage_user';
-const STORAGE_EXPIRY_KEY = 'medtriage_user_expiry';
-const SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 1 day
-
-function clearLocalSession() {
-  localStorage.removeItem(STORAGE_KEY);
-  localStorage.removeItem(STORAGE_EXPIRY_KEY);
-}
+import { getSession, logout, UNAUTHENTICATED_EVENT } from '@/api';
 
 export default function App() {
-  const [currentUser, setCurrentUser] = useState<HealthcareWorker | null>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      const expiry = localStorage.getItem(STORAGE_EXPIRY_KEY);
-      if (stored && expiry && Date.now() <= parseInt(expiry, 10)) {
-        return JSON.parse(stored);
-      }
-    } catch {
-      // ignore
-    }
-    return null;
-  });
+  const [currentUser, setCurrentUser] = useState<HealthcareWorker | null>(null);
+  const [checkingSession, setCheckingSession] = useState(true);
 
-  const handleLoginSuccess = useCallback((worker: HealthcareWorker) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(worker));
-    localStorage.setItem(STORAGE_EXPIRY_KEY, String(Date.now() + SESSION_TTL_MS));
-    setCurrentUser(worker);
+  // Restore the signed-in worker from the session cookie. The `ignore` flag makes the
+  // second Strict Mode mount's stale call a no-op.
+  useEffect(() => {
+    let ignore = false;
+    getSession()
+      .then((worker) => {
+        if (!ignore) setCurrentUser(worker);
+      })
+      .catch(() => {
+        if (!ignore) setCurrentUser(null);
+      })
+      .finally(() => {
+        if (!ignore) setCheckingSession(false);
+      });
+    return () => {
+      ignore = true;
+    };
   }, []);
 
-  const handleLogout = useCallback(() => {
-    clearLocalSession();
+  // Any request that finds the session gone sends the user back to the login screen
+  useEffect(() => {
+    const onUnauthenticated = () => setCurrentUser(null);
+    window.addEventListener(UNAUTHENTICATED_EVENT, onUnauthenticated);
+    return () => window.removeEventListener(UNAUTHENTICATED_EVENT, onUnauthenticated);
+  }, []);
+
+  const handleLogout = useCallback(async () => {
+    await logout();
     setCurrentUser(null);
   }, []);
 
-  if (!currentUser) {
-    return <Auth onLoginSuccess={handleLoginSuccess} />;
+  if (checkingSession) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100vh',
+          backgroundColor: '#f8f5ee',
+          color: '#78716c',
+          fontSize: '0.9rem',
+          fontWeight: 500,
+        }}
+        role="status"
+      >
+        Restoring session…
+      </div>
+    );
   }
 
-  return (
-    <Homescreen
-      currentUser={currentUser}
-      onLogout={handleLogout}
-    />
-  );
+  if (!currentUser) {
+    return <Auth onLoginSuccess={setCurrentUser} />;
+  }
+
+  return <Homescreen currentUser={currentUser} onLogout={handleLogout} />;
 }

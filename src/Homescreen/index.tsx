@@ -9,7 +9,7 @@ import QueueTab from './QueueTab';
 import RegisterPatientModal from './RegisterPatientModal';
 import PatientHistoryModal from './PatientHistoryModal';
 import { HealthcareWorker, PatientItem, QueueRecord, SymptomItem, Tab, ToastMessage, WardReport } from './types';
-import { INITIAL_PATIENTS, INITIAL_QUEUE, INITIAL_SYMPTOMS, INITIAL_WARD_REPORT } from './mockData';
+import { errorMessage, getReviewQueue, getWardReport, listPatients, listSymptoms } from '@/api';
 
 export type { HealthcareWorker, PatientItem, SymptomItem } from './types';
 
@@ -26,14 +26,10 @@ const POSITION_LABEL: Record<string, string> = {
   admin: 'Administrator',
 };
 
-const PATIENTS_STORAGE_KEY = 'medtriage_patients';
-const QUEUE_STORAGE_KEY = 'medtriage_queue';
-
 export default function Homescreen({ currentUser, onLogout }: HomescreenProps) {
   const [activeTab, setActiveTab] = useState<Tab>('triage');
 
   // Normalize the worker record (API and cached copies use different casings)
-  const workerUserId = currentUser?.userId ?? currentUser?.user_id ?? 1;
   const workerFirstName = currentUser?.firstName ?? currentUser?.first_name ?? '';
   const workerLastName = currentUser?.lastName ?? currentUser?.last_name ?? '';
   const workerEmployeeId = currentUser?.employeeId ?? currentUser?.employee_id ?? '';
@@ -41,32 +37,16 @@ export default function Homescreen({ currentUser, onLogout }: HomescreenProps) {
   const isDoctor = workerPosition === 'doctor';
   const displayName = `${isDoctor ? 'Dr. ' : ''}${workerFirstName} ${workerLastName}`.trim();
 
-  // Shared data initialized with rich clinical demo records
-  const [patients, setPatients] = useState<PatientItem[]>(() => {
-    try {
-      const saved = localStorage.getItem(PATIENTS_STORAGE_KEY);
-      if (saved) return JSON.parse(saved);
-    } catch {
-      // ignore
-    }
-    return INITIAL_PATIENTS;
-  });
-  const [patientsLoading, setPatientsLoading] = useState(false);
+  // Shared data, loaded from the facility server
+  const [patients, setPatients] = useState<PatientItem[]>([]);
+  const [patientsLoading, setPatientsLoading] = useState(true);
 
-  const [symptoms] = useState<SymptomItem[]>(INITIAL_SYMPTOMS);
+  const [symptoms, setSymptoms] = useState<SymptomItem[]>([]);
 
-  const [wardReport, setWardReport] = useState<WardReport | null>(INITIAL_WARD_REPORT);
+  const [wardReport, setWardReport] = useState<WardReport | null>(null);
   const [reportLoading, setReportLoading] = useState(false);
 
-  const [queue, setQueue] = useState<QueueRecord[]>(() => {
-    try {
-      const saved = localStorage.getItem(QUEUE_STORAGE_KEY);
-      if (saved) return JSON.parse(saved);
-    } catch {
-      // ignore
-    }
-    return INITIAL_QUEUE;
-  });
+  const [queue, setQueue] = useState<QueueRecord[]>([]);
   const [queueLoading, setQueueLoading] = useState(false);
 
   // Cross-tab coordination
@@ -74,32 +54,6 @@ export default function Homescreen({ currentUser, onLogout }: HomescreenProps) {
   const regSourceRef = useRef<'triage' | 'patients'>('patients');
   const [patientRequest, setPatientRequest] = useState<PatientRequest | null>(null);
   const [historyPatientId, setHistoryPatientId] = useState<number | null>(null);
-
-  // Persist patient additions
-  const updatePatientsList = useCallback((updater: (prev: PatientItem[]) => PatientItem[]) => {
-    setPatients((prev) => {
-      const next = updater(prev);
-      try {
-        localStorage.setItem(PATIENTS_STORAGE_KEY, JSON.stringify(next));
-      } catch {
-        // ignore
-      }
-      return next;
-    });
-  }, []);
-
-  // Persist queue updates
-  const updateQueueList = useCallback((updater: (prev: QueueRecord[]) => QueueRecord[]) => {
-    setQueue((prev) => {
-      const next = updater(prev);
-      try {
-        localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(next));
-      } catch {
-        // ignore
-      }
-      return next;
-    });
-  }, []);
 
   // Toasts
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -110,16 +64,54 @@ export default function Homescreen({ currentUser, onLogout }: HomescreenProps) {
   }, []);
 
   const loadPatients = useCallback(async () => {
-    setPatientsLoading(false);
-  }, []);
+    setPatientsLoading(true);
+    try {
+      setPatients(await listPatients());
+    } catch (err) {
+      toast('error', errorMessage(err, 'Could not load patients.'));
+    } finally {
+      setPatientsLoading(false);
+    }
+  }, [toast]);
+
+  const loadSymptoms = useCallback(async () => {
+    try {
+      setSymptoms(await listSymptoms());
+    } catch (err) {
+      toast('error', errorMessage(err, 'Could not load the symptom catalogue.'));
+    }
+  }, [toast]);
 
   const loadWardReport = useCallback(async () => {
-    setReportLoading(false);
-  }, []);
+    setReportLoading(true);
+    try {
+      setWardReport(await getWardReport());
+    } catch (err) {
+      toast('error', errorMessage(err, 'Could not load the ward overview.'));
+    } finally {
+      setReportLoading(false);
+    }
+  }, [toast]);
 
+  // The review queue is for doctors only; other roles never load it
   const loadQueue = useCallback(async () => {
-    setQueueLoading(false);
-  }, []);
+    if (!isDoctor) return;
+    setQueueLoading(true);
+    try {
+      setQueue(await getReviewQueue());
+    } catch (err) {
+      toast('error', errorMessage(err, 'Could not load the review queue.'));
+    } finally {
+      setQueueLoading(false);
+    }
+  }, [isDoctor, toast]);
+
+  // Initial load. The queue is loaded up front too so its tab badge shows the count.
+  useEffect(() => {
+    loadPatients();
+    loadSymptoms();
+    loadQueue();
+  }, [loadPatients, loadSymptoms, loadQueue]);
 
   const switchTab = (tab: Tab) => {
     setActiveTab(tab);
@@ -132,10 +124,13 @@ export default function Homescreen({ currentUser, onLogout }: HomescreenProps) {
     setShowRegModal(true);
   };
 
-  const handleRegistered = (patient: PatientItem) => {
-    updatePatientsList((prev) => [patient, ...prev]);
+  const handleRegistered = (patient: PatientItem, warning?: string) => {
+    // Add it straight away so the triage wizard can select it, then refresh from the server
+    setPatients((prev) => [{ ...patient, records: [] }, ...prev.filter((p) => p.patient_id !== patient.patient_id)]);
+    loadPatients();
     setShowRegModal(false);
     toast('success', `${fullName(patient)} registered.`);
+    if (warning) toast('error', warning);
     if (regSourceRef.current === 'triage') {
       setPatientRequest({ patientId: patient.patient_id, reset: false, nonce: Date.now() });
     }
@@ -148,20 +143,12 @@ export default function Homescreen({ currentUser, onLogout }: HomescreenProps) {
   };
 
   const handleQueueReview = (record: QueueRecord) => {
-    updateQueueList((prev) => prev.filter((q) => q.recordId !== record.recordId));
-    setWardReport((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        awaiting_review: Math.max(0, prev.awaiting_review - 1),
-        review_stats: {
-          ...prev.review_stats,
-          reviewed: prev.review_stats.reviewed + 1,
-          pending: Math.max(0, prev.review_stats.pending - 1),
-        },
-      };
-    });
+    setQueue((prev) => prev.filter((q) => q.recordId !== record.recordId));
     toast('success', `Review for ${record.patientName} saved.`);
+    // The review changes the queue, the ward numbers and the patient's last visit
+    loadQueue();
+    loadWardReport();
+    loadPatients();
   };
 
   const tabs: Array<{ id: Tab; label: string; icon: IconName; badge?: number; badgeUrgent?: boolean }> = [
@@ -226,7 +213,6 @@ export default function Homescreen({ currentUser, onLogout }: HomescreenProps) {
           <TriageWizard
             patients={patients}
             symptoms={symptoms}
-            workerUserId={workerUserId}
             canReview={isDoctor}
             patientRequest={patientRequest}
             onRegister={() => openRegister('triage')}
@@ -248,7 +234,7 @@ export default function Homescreen({ currentUser, onLogout }: HomescreenProps) {
             onStartTriage={startTriageFor}
             onViewHistory={setHistoryPatientId}
             onPatientUpdated={(updated) => {
-              updatePatientsList((prev) => prev.map((p) => (p.patient_id === updated.patient_id ? { ...p, ...updated } : p)));
+              setPatients((prev) => prev.map((p) => (p.patient_id === updated.patient_id ? { ...p, ...updated } : p)));
               toast('success', 'Photo saved.');
             }}
             onError={(message) => toast('error', message)}
@@ -261,7 +247,6 @@ export default function Homescreen({ currentUser, onLogout }: HomescreenProps) {
           <QueueTab
             queue={queue}
             loading={queueLoading}
-            workerUserId={workerUserId}
             onRefresh={loadQueue}
             onReviewed={handleQueueReview}
           />

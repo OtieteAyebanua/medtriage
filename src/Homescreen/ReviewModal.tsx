@@ -2,19 +2,18 @@
 
 import React, { useState } from 'react';
 import styles from './Homescreen.module.css';
-// Removed apiFetch import
+import { errorMessage, submitReview } from '@/api';
 import { DISPOSITION_OPTIONS, LEVEL_LIST, TRIAGE_LEVELS, clampLevel, percent, visitTypeLabel } from './clinical';
 import { Avatar, Field, Icon, LevelBadge, levelClass, Modal, Notice, SectionLabel, Spinner } from './shared';
 import { QueueRecord } from './types';
 
 interface Props {
   record: QueueRecord;
-  workerUserId: number;
   onClose: () => void;
   onSubmitted: () => void;
 }
 
-export default function ReviewModal({ record, workerUserId, onClose, onSubmitted }: Props) {
+export default function ReviewModal({ record, onClose, onSubmitted }: Props) {
   const aiLevel = clampLevel(record.aiTriage.score);
   const [decision, setDecision] = useState<'accepted' | 'overridden'>('accepted');
   const [finalLevelKey, setFinalLevelKey] = useState<string>('');
@@ -32,12 +31,17 @@ export default function ReviewModal({ record, workerUserId, onClose, onSubmitted
     setSubmitting(true);
     setError(null);
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await submitReview(record.recordId, {
+        overrideAction: decision,
+        finalTriageLevel: decision === 'overridden' ? finalLevelKey : undefined,
+        overrideReason: decision === 'overridden' ? reason.trim() : undefined,
+        diagnosis: diagnosis.trim() || undefined,
+        dischargeAction: disposition,
+      });
+      setSubmitting(false);
       onSubmitted();
     } catch (err) {
-      console.error(err);
-      setError('Could not reach the facility server. Check the LAN connection and try again.');
-    } finally {
+      setError(errorMessage(err, 'Could not save the review.'));
       setSubmitting(false);
     }
   };

@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationIcon>Assets\medtriage.ico</ApplicationIcon>
+    <!-- The React app (package.json, src/, dist/) lives one folder up -->
+    <FrontendRoot>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/..'))</FrontendRoot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.13" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.11" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Icons used by the installers for desktop / Start menu shortcuts -->
+    <None Include="Assets\**" CopyToPublishDirectory="PreserveNewest" ExcludeFromSingleFile="true" />
+  </ItemGroup>
+
+  <!--
+    On publish, build the React app and ship it as wwwroot next to the executable, so the server
+    serves the frontend itself. Pass -p:SkipFrontendBuild=true to reuse an existing dist/ folder.
+  -->
+  <Target Name="PublishFrontend" AfterTargets="ComputeFilesToPublish">
+    <Exec Command="npm ci" WorkingDirectory="$(FrontendRoot)" Condition="'$(SkipFrontendBuild)' != 'true' And !Exists('$(FrontendRoot)/node_modules')" />
+    <Exec Command="npm run build" WorkingDirectory="$(FrontendRoot)" Condition="'$(SkipFrontendBuild)' != 'true'" />
+    <Error Text="Frontend build not found at $(FrontendRoot)/dist/index.html" Condition="!Exists('$(FrontendRoot)/dist/index.html')" />
+
+    <ItemGroup>
+      <FrontendDist Include="$(FrontendRoot)/dist/**/*" />
+      <ResolvedFileToPublish Include="@(FrontendDist)">
+        <RelativePath>wwwroot/%(FrontendDist.RecursiveDir)%(FrontendDist.Filename)%(FrontendDist.Extension)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+  </Target>
+
+</Project>

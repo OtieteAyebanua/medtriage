@@ -4,7 +4,7 @@ import React, { useRef, useState } from 'react';
 import styles from './Homescreen.module.css';
 import { ageFrom, formatDate, fullName, hasAllergies, lastVisitSummary, matchesPatient } from './clinical';
 import { Avatar, EmptyState, Field, Icon } from './shared';
-import { PHOTO_ACCEPT, uploadPatientPhoto } from './api';
+import { PHOTO_ACCEPT, uploadPatientPhoto } from '@/api';
 import { PatientItem } from './types';
 
 interface Props {

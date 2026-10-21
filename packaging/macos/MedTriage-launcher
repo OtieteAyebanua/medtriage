@@ -1,0 +1,13 @@
+#!/bin/bash
+# What runs when someone clicks MedTriage.app.
+# - Not running yet: start the server in a Terminal window (it prints the address for tablets and opens
+#   the app window; closing that Terminal window stops MedTriage).
+# - Already running: just open another app window.
+SERVER="$(cd "$(dirname "$0")/../Resources/server" && pwd)/MedTriage"
+
+if curl -fsS --max-time 2 http://localhost:4000/api/health 2>/dev/null | grep -q MedTriage; then
+  # The server notices it's already running, opens a window and exits
+  exec "$SERVER"
+fi
+
+open -a Terminal "$SERVER"

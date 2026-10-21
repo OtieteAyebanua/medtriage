@@ -1,0 +1,44 @@
+@host = http://localhost:4000
+
+# Sign in first; the IDE's HTTP client keeps the session cookie for the requests below.
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "employeeId": "HW-DOC-001", "password": "demo123" }
+
+###
+
+GET {{host}}/api/auth/session
+
+###
+
+GET {{host}}/api/patients
+
+###
+
+GET {{host}}/api/symptoms
+
+###
+
+POST {{host}}/api/triage
+Content-Type: application/json
+
+{
+  "patientId": 1,
+  "visitType": "walk_in",
+  "chiefComplaint": "High fever and headache for 3 days",
+  "vitals": { "temperature": 39.4, "bloodPressure": "138/88", "heartRate": 104, "oxygenLevel": 97, "respiratoryRate": 20 },
+  "symptoms": [{ "symptomId": 1, "severity": "moderate", "duration": "3–7 days", "notes": null }]
+}
+
+###
+
+GET {{host}}/api/records/queue
+
+###
+
+GET {{host}}/api/reports/ward
+
+###
+
+POST {{host}}/api/auth/logout

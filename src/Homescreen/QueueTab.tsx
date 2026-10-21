@@ -10,12 +10,11 @@ import ReviewModal from './ReviewModal';
 interface Props {
   queue: QueueRecord[];
   loading: boolean;
-  workerUserId: number;
   onRefresh: () => void;
   onReviewed: (record: QueueRecord) => void;
 }
 
-export default function QueueTab({ queue, loading, workerUserId, onRefresh, onReviewed }: Props) {
+export default function QueueTab({ queue, loading, onRefresh, onReviewed }: Props) {
   const [selected, setSelected] = useState<QueueRecord | null>(null);
   // Re-render every minute so wait times stay honest.
   const [now, setNow] = useState(() => Date.now());
@@ -95,7 +94,6 @@ export default function QueueTab({ queue, loading, workerUserId, onRefresh, onRe
       {selected && (
         <ReviewModal
           record={selected}
-          workerUserId={workerUserId}
           onClose={() => setSelected(null)}
           onSubmitted={() => {
             const done = selected;

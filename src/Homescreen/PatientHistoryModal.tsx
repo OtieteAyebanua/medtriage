@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import styles from './Homescreen.module.css';
-// Removed apiFetch import
+import { errorMessage, getPatientHistory } from '@/api';
 import {
   formatDate,
   formatDateTime,
@@ -33,26 +33,13 @@ export default function PatientHistoryModal({ patientId, onClose, onStartTriage 
     let cancelled = false;
     (async () => {
       try {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        const json: PatientHistory = {
-          patient: {
-            patient_id: patientId,
-            first_name: 'Demo',
-            last_name: 'Patient',
-            date_of_birth: '1980-01-01',
-            gender: 'Female',
-            blood_type: 'O+',
-            photo_path: null,
-            age: 44,
-          },
-          visits: []
-        };
+        const json = await getPatientHistory(patientId);
         if (cancelled) return;
         setData(json);
-        setOpenId(null);
-      } catch (e) {
-        console.error(e);
-        if (!cancelled) setError('Could not reach the facility server.');
+        // Open the most recent visit so its details are visible straight away
+        setOpenId(json.visits[0]?.record_id ?? null);
+      } catch (err) {
+        if (!cancelled) setError(errorMessage(err, 'Could not load the patient history.'));
       }
     })();
     return () => {
