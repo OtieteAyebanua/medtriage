@@ -1,102 +1,79 @@
-using System.Net.Http.Headers;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using MedTriage.Server.Common;
-using MedTriage.Server.Dtos;
 using Microsoft.Extensions.Options;
 
 namespace MedTriage.Server.Services.Triage;
 
+/// <summary>
+/// Combines the AI model chosen by "Inference:Provider" with the built-in rule engine:
+/// <list type="bullet">
+/// <item>No model configured, or it fails (unreachable, too slow, invalid reply): the rule engine's result.</item>
+/// <item>Otherwise the model's result, with the rule engine as a <b>safety floor</b>: if the rules find the patient
+/// more urgent than the model does, the more urgent level wins and the reasoning says so. A small model can then add
+/// explanation and possible conditions, but can never under-triage a red flag the rules catch.</item>
+/// </list>
+/// </summary>
 public class InferenceService(
-    HttpClient http,
     IOptions<InferenceOptions> options,
     RuleTriageEngine rules,
+    OllamaTriageModel ollama,
+    ExternalTriageModel external,
     ILogger<InferenceService> logger) : IInferenceService
 {
-    // The external model speaks snake_case JSON
-    private static readonly JsonSerializerOptions Wire = new(JsonSerializerDefaults.Web)
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-        NumberHandling = JsonNumberHandling.AllowReadingFromString,
-    };
-
     public async Task<InferenceResult> AssessAsync(InferenceRequest request, CancellationToken ct = default)
     {
+        var ruleResult = rules.Evaluate(request);
+
+        var model = SelectModel();
+        if (model is null) return ruleResult;
+
+        InferenceResult modelResult;
+        try
+        {
+            modelResult = await model.AssessAsync(request, ct);
+        }
+        catch (Exception ex) when (!ct.IsCancellationRequested)
+        {
+            logger.LogWarning("AI model {Model} ({Engine}) failed, using the rule engine instead: {Error}", model.Name, model.Engine, ex.Message);
+            return ruleResult;
+        }
+
+        return ApplySafetyFloor(modelResult, ruleResult);
+    }
+
+    private ITriageModel? SelectModel()
+    {
         var config = options.Value;
-        if (!string.IsNullOrWhiteSpace(config.Url))
+        return config.Provider.Trim().ToLowerInvariant() switch
         {
-            try
-            {
-                return await CallExternalAsync(config, request, ct);
-            }
-            catch (Exception ex) when (!ct.IsCancellationRequested)
-            {
-                logger.LogWarning(ex, "Inference service at {Url} failed; falling back to the rule engine", config.Url);
-            }
-        }
-
-        return rules.Evaluate(request);
-    }
-
-    private async Task<InferenceResult> CallExternalAsync(InferenceOptions config, InferenceRequest request, CancellationToken ct)
-    {
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        timeout.CancelAfter(config.TimeoutMs);
-
-        using var message = new HttpRequestMessage(HttpMethod.Post, config.Url)
-        {
-            Content = JsonContent.Create(request, options: Wire),
+            "ollama" => ollama,
+            "http" => external,
+            "rules" => null,
+            _ => string.IsNullOrWhiteSpace(config.Url) ? null : external, // "auto"
         };
-        if (!string.IsNullOrEmpty(config.ApiKey))
+    }
+
+    private const int MaxMergedTests = 6;
+
+    /// <summary>The model's result, raised to the rule engine's level if that is more urgent (1 = most urgent).</summary>
+    public static InferenceResult ApplySafetyFloor(InferenceResult model, InferenceResult rules)
+    {
+        // A model that gave no tests or conditions still gets the rule engine's
+        var tests = model.SuggestedTests.Count > 0 ? model.SuggestedTests : rules.SuggestedTests;
+        var conditions = model.DifferentialDiagnosis.Count > 0 ? model.DifferentialDiagnosis : rules.DifferentialDiagnosis;
+
+        if (rules.UrgencyScore >= model.UrgencyScore)
         {
-            message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", config.ApiKey);
+            return model with { SuggestedTests = tests, DifferentialDiagnosis = conditions };
         }
 
-        using var response = await http.SendAsync(message, timeout.Token);
-        response.EnsureSuccessStatusCode();
-
-        var body = await response.Content.ReadFromJsonAsync<ExternalResponse>(Wire, timeout.Token)
-            ?? throw new InvalidDataException("Empty response");
-        return Normalize(body);
+        return model with
+        {
+            UrgencyScore = rules.UrgencyScore,
+            TriageLevel = rules.TriageLevel,
+            Reasoning = $"{model.Reasoning} Safety check: the rule engine raised this from Level {model.UrgencyScore} to Level {rules.UrgencyScore}. {rules.Reasoning}",
+            // The model's tests first, then the rules' for the red flags it missed; capped so the list stays readable
+            SuggestedTests = tests.Concat(rules.SuggestedTests).Distinct(StringComparer.OrdinalIgnoreCase).Take(MaxMergedTests).ToList(),
+            DifferentialDiagnosis = conditions,
+            SafetyRaisedFrom = model.UrgencyScore,
+        };
     }
-
-    /// <summary>Validates the model's reply strictly. A bad reply must never produce a bad record.</summary>
-    private static InferenceResult Normalize(ExternalResponse body)
-    {
-        if (body.UrgencyScore is not (>= 1 and <= 5)) throw new InvalidDataException("urgency_score must be 1–5");
-        if (string.IsNullOrWhiteSpace(body.Reasoning)) throw new InvalidDataException("reasoning is required");
-
-        var score = (int)Math.Round(body.UrgencyScore.Value);
-        var level = ClinicalValues.TriageLevels.Contains(body.TriageLevel)
-            ? body.TriageLevel!
-            : ClinicalValues.TriageLevelFromScore(score);
-        var confidence = body.Confidence is >= 0 and <= 1 ? body.Confidence : null;
-
-        var tests = (body.SuggestedTests ?? [])
-            .Where(t => !string.IsNullOrWhiteSpace(t))
-            .Select(t => t!.Trim())
-            .ToList();
-
-        var diagnoses = (body.DifferentialDiagnosis ?? [])
-            .Where(d => !string.IsNullOrWhiteSpace(d?.Condition) && d.Probability is not null)
-            .Select(d => new DifferentialDiagnosisDto(
-                d!.Condition!,
-                // Accept 72 as well as 0.72
-                Math.Clamp(d.Probability > 1 ? d.Probability.Value / 100 : d.Probability!.Value, 0, 1),
-                d.Rationale ?? ""))
-            .OrderByDescending(d => d.Probability)
-            .ToList();
-
-        return new InferenceResult(score, level, confidence, body.Reasoning.Trim(), tests, diagnoses, Engine: "external");
-    }
-
-    private record ExternalResponse(
-        double? UrgencyScore,
-        string? TriageLevel,
-        double? Confidence,
-        string? Reasoning,
-        List<string?>? SuggestedTests,
-        List<ExternalDiagnosis?>? DifferentialDiagnosis);
-
-    private record ExternalDiagnosis(string? Condition, double? Probability, string? Rationale);
 }

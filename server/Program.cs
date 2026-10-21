@@ -72,7 +72,10 @@ builder.Services.AddSingleton<IPhotoStorage, PhotoStorage>();
 
 builder.Services.Configure<InferenceOptions>(builder.Configuration.GetSection("Inference"));
 builder.Services.AddSingleton<RuleTriageEngine>();
-builder.Services.AddHttpClient<IInferenceService, InferenceService>();
+builder.Services.AddHttpClient<OllamaTriageModel>();
+builder.Services.AddHttpClient<ExternalTriageModel>();
+builder.Services.AddScoped<IInferenceService, InferenceService>();
+builder.Services.AddHostedService<OllamaWarmup>();
 
 // ---- Network discovery, so MedTriage apps on the facility network find this server by themselves ----
 if (builder.Configuration.GetValue("Discovery:Enabled", true))

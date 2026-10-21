@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import styles from './Homescreen.module.css';
-import { errorMessage, runTriage as runTriageRequest } from '@/api';
+import { errorMessage, RunTriageResult, runTriage as runTriageRequest } from '@/api';
 import {
   ageFrom,
   DURATION_OPTIONS,
@@ -33,6 +33,9 @@ const STEPS = [
 ];
 
 const EMPTY_VITALS: Vitals = { temp: '', bp: '', heartRate: '', spo2: '', respRate: '' };
+
+/** Which engine produced a result, shown under it */
+type EngineInfo = Pick<RunTriageResult, 'engine' | 'model' | 'safety_raised_from'>;
 
 export interface PatientRequest {
   patientId: number;
@@ -74,6 +77,7 @@ export default function TriageWizard({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [result, setResult] = useState<TriageResult | null>(null);
   const [recordId, setRecordId] = useState<number | null>(null);
+  const [engineInfo, setEngineInfo] = useState<EngineInfo | null>(null);
 
   const resetAll = () => {
     setStep(1);
@@ -87,6 +91,7 @@ export default function TriageWizard({
     setSubmitError(null);
     setResult(null);
     setRecordId(null);
+    setEngineInfo(null);
   };
 
   // Requests from other tabs: "Start triage" in the registry or a newly registered patient.
@@ -169,6 +174,7 @@ export default function TriageWizard({
       });
       setResult(data.triage);
       setRecordId(data.record_id);
+      setEngineInfo({ engine: data.engine, model: data.model, safety_raised_from: data.safety_raised_from });
       setStep(5);
       onTriageSaved();
     } catch (err) {
@@ -718,7 +724,7 @@ export default function TriageWizard({
                   Start a new assessment to run the triage engine.
                 </EmptyState>
               ) : (
-                <ResultView result={result} recordId={recordId} canReview={canReview} onGoToQueue={onGoToQueue} onNew={resetAll} />
+                <ResultView result={result} recordId={recordId} engine={engineInfo} canReview={canReview} onGoToQueue={onGoToQueue} onNew={resetAll} />
               )}
             </section>
           )}
@@ -820,12 +826,14 @@ function SummaryRow({
 function ResultView({
   result,
   recordId,
+  engine,
   canReview,
   onGoToQueue,
   onNew,
 }: {
   result: TriageResult;
   recordId: number | null;
+  engine: EngineInfo | null;
   canReview: boolean;
   onGoToQueue: () => void;
   onNew: () => void;
@@ -848,8 +856,14 @@ function ResultView({
         </div>
       </div>
 
+      {engine?.safety_raised_from != null && (
+        <Notice kind="warning">
+          The AI model suggested Level {engine.safety_raised_from}. The safety rules found warning signs and raised it to Level {level}.
+        </Notice>
+      )}
+
       <div className={styles.resultSection}>
-        <SectionLabel>Why this level</SectionLabel>
+        <SectionLabel right={engine && <span className={styles.tableMuted}>{engineLabel(engine)}</span>}>Why this level</SectionLabel>
         <p className={styles.reasoningText}>{result.reasoning}</p>
       </div>
 
@@ -912,4 +926,10 @@ function ResultView({
       </div>
     </div>
   );
+}
+
+function engineLabel(engine: EngineInfo): string {
+  if (engine.engine === 'rules') return 'Assessed by the built-in rule engine';
+  const model = engine.model ? `AI model (${engine.model})` : 'AI model';
+  return `Assessed by ${model} · checked by safety rules`;
 }

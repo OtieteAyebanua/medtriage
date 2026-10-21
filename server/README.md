@@ -131,9 +131,10 @@ Any setting can also be set with an environment variable, using `__` between the
 | `Discovery:Enabled` / `Discovery:Port` | `true` / `4001` | Answer MedTriage apps searching the network |
 | `DemoData:Enabled` | `true` | Fill an empty database with demo data on startup |
 | `DemoData:Password` | `demo123` | Password for the demo staff accounts |
-| `Inference:Url` | *(empty)* | External AI model endpoint. Empty → built-in rule engine |
-| `Inference:TimeoutMs` | `5000` | Timeout before falling back to the rule engine |
-| `Inference:ApiKey` | *(empty)* | Sent as a bearer token if set |
+| `Inference:Provider` | `ollama` | AI model alongside the rule engine: `ollama`, `http`, `rules` or `auto` (see "Inference service" in API_README.md) |
+| `Inference:Ollama:Model` | `qwen2.5:1.5b` | Local model in Ollama (`ollama pull qwen2.5:1.5b` first) |
+| `Inference:Ollama:Url` / `TimeoutMs` | `http://localhost:11434` / `60000` | Where Ollama runs; when to give up and use the rules |
+| `Inference:Url` / `TimeoutMs` / `ApiKey` | *(empty)* / `5000` / *(empty)* | External model server for the `http` provider |
 
 ## Adding a table or column
 

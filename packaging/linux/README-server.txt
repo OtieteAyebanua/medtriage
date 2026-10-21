@@ -24,6 +24,14 @@ Connecting
     type the address shown in the server window.
   - Tablets and phones: open the address in the browser, then "Add to Home Screen".
 
+AI model (optional, recommended)
+  MedTriage Server works on its own using built-in safety rules. To add the AI model:
+  1. Install Ollama (needs internet once):   curl -fsSL https://ollama.com/install.sh | sh
+  2. Download the model:                       ollama pull qwen2.5:1.5b      (about 1 GB)
+  The installer runs Ollama as a background service. When MedTriage Server starts, its window
+  says whether the AI model is ready. If Ollama isn't running, triage still works using the
+  safety rules.
+
 Demo accounts
   The server starts with demo data. Every demo account's password is demo123
   (doctor HW-DOC-001, nurse HW-NUR-002).

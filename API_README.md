@@ -449,7 +449,9 @@ Response `200`:
 {
   "success": true,
   "record_id": 48,
-  "engine": "external",
+  "engine": "ollama",
+  "model": "qwen2.5:1.5b",
+  "safety_raised_from": null,
   "triage": {
     "urgency_level": 3,
     "urgency_category": "URGENT",
@@ -467,7 +469,8 @@ Response `200`:
 
 - `urgency_level` is 1–5. The UI's result screen is driven by this number.
 - `probability` is 0–1, sorted from highest to lowest.
-- `engine` is `"external"` or `"rules"`. It's for logging only and isn't stored.
+- `engine` is `"ollama"` (local AI model), `"external"` (model server) or `"rules"` (built-in rule engine). `model` is the AI model's name, or `null` for the rules. The result screen shows both. Neither is stored.
+- `safety_raised_from` is the AI model's own level when the rule engine found warning signs and raised it to a more urgent one (see [Inference service](#inference-service)); otherwise `null`.
 - `urgency_category` isn't displayed, but `TriageResult` in `types.ts` requires it.
 
 #### 12. `GET /api/records/queue`
@@ -618,12 +621,27 @@ Response `200`:
 
 ## Inference service
 
-`POST /api/triage` gets its AI result from an external model server when `INFERENCE_URL` is set. If that call fails or times out, or the variable isn't set, the backend falls back to a built-in rule engine so triage keeps working.
+`POST /api/triage` always runs the built-in **rule engine**, and also asks the AI model chosen by `Inference:Provider`:
+
+| Provider | Model |
+|---|---|
+| `ollama` (current default) | A small local language model in [Ollama](https://ollama.com), default `qwen2.5:1.5b`, a placeholder until the main model is ready. The server sends the patient as a prompt and asks for JSON in a fixed shape (`server/Services/Triage/TriagePrompt.cs`). |
+| `http` | An external model server speaking the contract below. |
+| `rules` | No model; rule engine only. |
+| `auto` | `http` when `Inference:Url` is set, otherwise `rules`. |
+
+How the two are combined (`InferenceService`):
+- **No model, or it fails** (not running, model not downloaded, too slow, invalid reply): the rule engine's result. Triage never stops working.
+- **Safety floor:** if the rule engine finds the patient **more urgent** than the model does, the more urgent level wins. The reasoning then says "Safety check: the rule engine raised this from Level X to Level Y…" and the response's `safety_raised_from` is set. A model can add explanation and possible conditions, but can't under-triage a red flag the rules catch.
+
+**Setting up Ollama on the server computer:** install Ollama, run `ollama pull qwen2.5:1.5b` once (about 1 GB, needs internet), then keep the Ollama app running. The server loads the model when it starts and says in its console if Ollama isn't running or the model is missing.
+
+### External model contract (`http` provider)
 
 ```
-POST {INFERENCE_URL}
+POST {Inference:Url}
 Content-Type: application/json
-Authorization: Bearer {INFERENCE_API_KEY}     (only if set)
+Authorization: Bearer {Inference:ApiKey}     (only if set)
 ```
 
 Request body (snake_case):
@@ -667,9 +685,13 @@ These live in `server/appsettings.json`. Any of them can be overridden with an e
 |---|---|---|
 | `ConnectionStrings:MedTriage` | `Data Source=medtriage.db` | SQLite database file |
 | `Uploads:Directory` | `uploads` | Where patient photos are stored |
-| `Inference:Url` | *(empty)* | External model endpoint. Empty → rule engine |
-| `Inference:TimeoutMs` | `5000` | Timeout before falling back to the rule engine |
-| `Inference:ApiKey` | *(empty)* | Sent as a bearer token if set |
+| `Inference:Provider` | `ollama` | `ollama`, `http`, `rules` or `auto` (see above) |
+| `Inference:Ollama:Model` | `qwen2.5:1.5b` | The Ollama model to use |
+| `Inference:Ollama:Url` | `http://localhost:11434` | Where Ollama runs |
+| `Inference:Ollama:TimeoutMs` | `60000` | Give up on the model and use the rule engine after this |
+| `Inference:Url` | *(empty)* | External model endpoint for the `http` provider |
+| `Inference:TimeoutMs` | `5000` | Timeout for the external model |
+| `Inference:ApiKey` | *(empty)* | Sent to the external model as a bearer token if set |
 
 ---
 

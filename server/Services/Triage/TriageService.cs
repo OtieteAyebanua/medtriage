@@ -112,6 +112,8 @@ public class TriageService(
             Success: true,
             record.RecordId,
             result.Engine,
+            result.Model,
+            result.SafetyRaisedFrom,
             new TriageResultDto(
                 result.UrgencyScore,
                 result.TriageLevel.Replace('_', ' ').ToUpperInvariant(),
