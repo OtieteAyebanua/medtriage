@@ -74,14 +74,20 @@ builder.Services.Configure<InferenceOptions>(builder.Configuration.GetSection("I
 builder.Services.AddSingleton<RuleTriageEngine>();
 builder.Services.AddHttpClient<IInferenceService, InferenceService>();
 
+// ---- Network discovery, so MedTriage apps on the facility network find this server by themselves ----
+if (builder.Configuration.GetValue("Discovery:Enabled", true))
+{
+    builder.Services.AddHostedService<DiscoveryResponder>();
+}
+
 var app = builder.Build();
 
-// ---- Desktop app: clicking the icon again while it's running just opens another window ----
-var openWindow = app.Configuration.GetValue<bool>("Desktop:OpenWindow");
-var localUrl = DesktopLauncher.LocalUrl(app.Configuration);
-if (openWindow && await DesktopLauncher.IsAlreadyRunningAsync(localUrl))
+// ---- Installed server: console banner, and a clear message instead of a crash if it's started twice ----
+var showBanner = app.Configuration.GetValue<bool>("Server:ShowBanner");
+var localUrl = ServerConsole.LocalUrl(app.Configuration);
+if (showBanner && await ServerConsole.IsAlreadyRunningAsync(localUrl))
 {
-    DesktopLauncher.OpenWindow(localUrl, app.Logger);
+    ServerConsole.WaitForEnter("MedTriage Server is already running on this computer.");
     return;
 }
 
@@ -126,23 +132,17 @@ if (hasFrontend)
     app.MapFallbackToFile("index.html").AllowAnonymous();
 }
 
-if (openWindow)
+if (showBanner)
 {
-    app.Lifetime.ApplicationStarted.Register(() =>
-    {
-        DesktopLauncher.PrintBanner(localUrl, paths.DataDirectory);
-        DesktopLauncher.OpenWindow(localUrl, app.Logger);
-    });
+    app.Lifetime.ApplicationStarted.Register(() => ServerConsole.PrintBanner(localUrl, paths.DataDirectory));
 }
 
 try
 {
     await app.RunAsync();
 }
-catch (IOException ex) when (openWindow)
+catch (IOException ex) when (showBanner)
 {
     // Usually the port is taken by another program. Keep the window open long enough to read why.
-    Console.Error.WriteLine($"\n  MedTriage could not start: {ex.Message}");
-    Console.Error.WriteLine($"  Another program may be using {localUrl}. Press Enter to close.");
-    Console.ReadLine();
+    ServerConsole.WaitForEnter($"MedTriage Server could not start: {ex.Message} Another program may be using {localUrl}.");
 }

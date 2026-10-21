@@ -6,6 +6,7 @@
  * UNAUTHENTICATED_EVENT is broadcast so the app can return to the login screen.
  */
 import type { HealthcareWorker } from './auth/authService';
+import { shrinkPhoto } from './photoResize';
 import type {
   DifferentialDiagnosis,
   PatientHistory,
@@ -19,6 +20,9 @@ import type {
 export const UNAUTHENTICATED_EVENT = 'medtriage:unauthenticated';
 
 export const PHOTO_ACCEPT = 'image/jpeg,image/png,image/webp';
+/** Largest photo staff can pick. It's shrunk before upload (see photoResize.ts), so it can be bigger than the server's limit. */
+export const PHOTO_SOURCE_MAX_BYTES = 25 * 1024 * 1024; // 25MB
+/** The server's limit for an uploaded photo. */
 export const PHOTO_MAX_BYTES = 5 * 1024 * 1024; // 5MB
 
 const NETWORK_ERROR = 'Could not reach the facility server. Check the network connection and try again.';
@@ -120,11 +124,12 @@ export function getPatientHistory(patientId: number): Promise<PatientHistory> {
   return request<PatientHistory>(`/api/patients/${patientId}`);
 }
 
-/** Upload or replace a patient's photo. Resolves with the updated patient. */
+/** Upload or replace a patient's photo, shrunk to a small JPEG first. Resolves with the updated patient. */
 export async function uploadPatientPhoto(patientId: number, file: File): Promise<PatientItem> {
-  if (file.size > PHOTO_MAX_BYTES) throw new ApiError('Photo must be 5 MB or smaller.', 413);
+  const photo = await shrinkPhoto(file);
+  if (photo.size > PHOTO_MAX_BYTES) throw new ApiError('Photo must be 5 MB or smaller.', 413);
   const form = new FormData();
-  form.append('photo', file);
+  form.append('photo', photo);
   return (await request<{ patient: PatientItem }>(`/api/patients/${patientId}/photo`, { method: 'POST', body: form })).patient;
 }
 

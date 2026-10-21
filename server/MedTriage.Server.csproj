@@ -4,7 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <ApplicationIcon>Assets\medtriage.ico</ApplicationIcon>
+    <ApplicationIcon>..\packaging\assets\medtriage.ico</ApplicationIcon>
     <!-- The React app (package.json, src/, dist/) lives one folder up -->
     <FrontendRoot>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/..'))</FrontendRoot>
   </PropertyGroup>
@@ -16,11 +16,6 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.11" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <!-- Icons used by the installers for desktop / Start menu shortcuts -->
-    <None Include="Assets\**" CopyToPublishDirectory="PreserveNewest" ExcludeFromSingleFile="true" />
   </ItemGroup>
 
   <!--

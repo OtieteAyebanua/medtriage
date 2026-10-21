@@ -233,11 +233,11 @@ export default function Homescreen({ currentUser, onLogout }: HomescreenProps) {
             onRegister={() => openRegister('patients')}
             onStartTriage={startTriageFor}
             onViewHistory={setHistoryPatientId}
-            onPatientUpdated={(updated) => {
-              setPatients((prev) => prev.map((p) => (p.patient_id === updated.patient_id ? { ...p, ...updated } : p)));
-              toast('success', 'Photo saved.');
+            onPatientUpdated={(updated, message) => {
+              // Keep the visit summary we already have; the photo response doesn't include it
+              setPatients((prev) => prev.map((p) => (p.patient_id === updated.patient_id ? { ...p, ...updated, records: p.records } : p)));
+              toast('success', message);
             }}
-            onError={(message) => toast('error', message)}
           />
         )}
 

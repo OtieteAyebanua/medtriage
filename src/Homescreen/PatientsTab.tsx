@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import styles from './Homescreen.module.css';
 import { ageFrom, formatDate, fullName, hasAllergies, lastVisitSummary, matchesPatient } from './clinical';
 import { Avatar, EmptyState, Field, Icon } from './shared';
-import { PHOTO_ACCEPT, uploadPatientPhoto } from '@/api';
+import PatientPhotoModal from './PatientPhotoModal';
 import { PatientItem } from './types';
 
 interface Props {
@@ -13,36 +13,13 @@ interface Props {
   onRegister: () => void;
   onStartTriage: (patientId: number) => void;
   onViewHistory: (patientId: number) => void;
-  onPatientUpdated: (patient: PatientItem) => void;
-  onError: (message: string) => void;
+  /** Called after a photo is saved or removed, with a message for the toast */
+  onPatientUpdated: (patient: PatientItem, message: string) => void;
 }
 
-export default function PatientsTab({ patients, loading, onRegister, onStartTriage, onViewHistory, onPatientUpdated, onError }: Props) {
+export default function PatientsTab({ patients, loading, onRegister, onStartTriage, onViewHistory, onPatientUpdated }: Props) {
   const [query, setQuery] = useState('');
-  const [uploadingId, setUploadingId] = useState<number | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const targetRef = useRef<number | null>(null);
-
-  const choosePhoto = (patientId: number) => {
-    targetRef.current = patientId;
-    fileInputRef.current?.click();
-  };
-
-  const handleFile = async (file: File | null) => {
-    const patientId = targetRef.current;
-    if (fileInputRef.current) fileInputRef.current.value = '';
-    if (!file || !patientId) return;
-    setUploadingId(patientId);
-    try {
-      const updated = await uploadPatientPhoto(patientId, file);
-      const existing = patients.find((p) => p.patient_id === patientId);
-      if (existing) onPatientUpdated({ ...existing, photo_path: updated.photo_path });
-    } catch (err) {
-      onError((err as Error).message);
-    } finally {
-      setUploadingId(null);
-    }
-  };
+  const [photoPatient, setPhotoPatient] = useState<PatientItem | null>(null);
   const filtered = patients.filter((p) => matchesPatient(p, query));
 
   return (
@@ -70,16 +47,6 @@ export default function PatientsTab({ patients, loading, onRegister, onStartTria
           aria-label="Search patients"
         />
       </div>
-
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept={PHOTO_ACCEPT}
-        className={styles.srOnly}
-        onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
-        aria-hidden="true"
-        tabIndex={-1}
-      />
 
       {loading && patients.length === 0 ? (
         <EmptyState icon="users" title="Loading patients…" />
@@ -118,14 +85,13 @@ export default function PatientsTab({ patients, loading, onRegister, onStartTria
                   <button
                     type="button"
                     className={styles.avatarButton}
-                    onClick={() => choosePhoto(p.patient_id)}
-                    title={p.photo_path ? 'Change photo' : 'Add photo'}
-                    aria-label={p.photo_path ? `Change photo of ${fullName(p)}` : `Add photo of ${fullName(p)}`}
-                    disabled={uploadingId === p.patient_id}
+                    onClick={() => setPhotoPatient(p)}
+                    title={p.photo_path ? 'Change or remove photo' : 'Add photo'}
+                    aria-label={p.photo_path ? `Change or remove photo of ${fullName(p)}` : `Add photo of ${fullName(p)}`}
                   >
                     <Avatar patientId={p.patient_id} firstName={p.first_name} lastName={p.last_name} photoPath={p.photo_path} size={56} />
                     <span className={styles.avatarEditBadge}>
-                      {uploadingId === p.patient_id ? <span className={styles.spinner} style={{ width: 12, height: 12 }} /> : <Icon name="camera" size={12} />}
+                      <Icon name="camera" size={12} />
                     </span>
                   </button>
                   <div className={styles.patientCardTitle}>
@@ -162,6 +128,17 @@ export default function PatientsTab({ patients, loading, onRegister, onStartTria
             );
           })}
         </div>
+      )}
+
+      {photoPatient && (
+        <PatientPhotoModal
+          patient={photoPatient}
+          onClose={() => setPhotoPatient(null)}
+          onSaved={(updated, message) => {
+            setPhotoPatient(null);
+            onPatientUpdated(updated, message);
+          }}
+        />
       )}
     </div>
   );

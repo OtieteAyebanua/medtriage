@@ -20,7 +20,7 @@ The original Next.js implementation of all these routes is still in git history 
 - [x] 6. `GET /api/patients/:id`
 - [x] 7. `POST /api/patients/:id/photo`
 - [x] 8. `GET /api/patients/:id/photo`
-- [x] 9. `DELETE /api/patients/:id/photo` *(optional: no UI uses it yet)*
+- [x] 9. `DELETE /api/patients/:id/photo`
 - [x] 10. `GET /api/symptoms`
 - [x] 11. `POST /api/triage`
 - [x] 12. `GET /api/records/queue`
@@ -331,9 +331,11 @@ Errors: `400` for a non-numeric ID, `404` when the patient doesn't exist.
 
 #### 7. `POST /api/patients/:id/photo`
 
-**Auth:** signed in · **Replaces:** `uploadPatientPhoto()` in [`src/Homescreen/api.ts:4`](src/Homescreen/api.ts#L4) · **Called from:** the Patients tab and after registering a patient
+**Auth:** signed in · **Called by:** `uploadPatientPhoto()` in [`src/api.ts`](src/api.ts), from the patient photo window (click a patient's avatar on the Patients tab) and after registering a patient
 
 Request: `multipart/form-data` with the file in a field named **`photo`**.
+
+The frontend shrinks every photo before uploading it ([`src/photoResize.ts`](src/photoResize.ts)): longest side at most 640 px, re-saved as JPEG at 85% quality, camera rotation applied, metadata such as GPS location removed. A phone photo arrives at roughly 50–100 KB. The server checks below still apply to anything that doesn't come through the app.
 
 - Accept only JPEG, PNG or WebP, up to 5 MB. **Check the file's magic bytes**, not just its declared MIME type.
 - Store the file (e.g. under `UPLOAD_DIR`) and save its relative path in `photo_path`.
@@ -354,9 +356,9 @@ Returns the raw image bytes with:
 
 `404` when the patient has no photo or the file is missing. The UI falls back to initials.
 
-#### 9. `DELETE /api/patients/:id/photo` *(optional)*
+#### 9. `DELETE /api/patients/:id/photo`
 
-**Auth:** signed in · **Used by:** nothing yet. [`PhotoPicker`](src/Homescreen/PhotoPicker.tsx) has a "Remove photo" button that appears once an `onRemove` handler is passed in.
+**Auth:** signed in · **Called by:** `removePatientPhoto()` in [`src/api.ts`](src/api.ts), from **Remove photo** in the patient photo window ([`PatientPhotoModal`](src/Homescreen/PatientPhotoModal.tsx)), after the user confirms.
 
 Sets `photo_path` to `null`, deletes the file, and returns `200 { "success": true, "patient": { … } }`.
 
@@ -718,7 +720,7 @@ In `App.tsx`, listen for `UNAUTHENTICATED_EVENT` and sign the user out.
 | [`src/App.tsx`](src/App.tsx) | Call #2 on mount (show a loading state while it runs). Call #3 in `handleLogout` |
 | [`src/Homescreen/index.tsx`](src/Homescreen/index.tsx) | Load patients (#4), symptoms (#10), queue (#12, doctors only) and the ward report (#14). Fill in `loadPatients`, `loadQueue` and `loadWardReport`. Remove the `medtriage_patients` / `medtriage_queue` `localStorage` caches. After a review, reload the queue and report instead of adjusting counts locally |
 | [`src/Homescreen/RegisterPatientModal.tsx`](src/Homescreen/RegisterPatientModal.tsx) | Call #5 with **every** field (the mock drops middle name, email, allergies and chronic conditions), then #7 if a photo was picked |
-| [`src/Homescreen/api.ts`](src/Homescreen/api.ts) | `uploadPatientPhoto` calls #7 and returns `data.patient`. Add `removePatientPhoto` for #9 if you want the remove button |
+| [`src/api.ts`](src/api.ts) | `uploadPatientPhoto` (#7, shrinks the photo first) and `removePatientPhoto` (#9), used by the patient photo window |
 | [`src/Homescreen/PatientHistoryModal.tsx`](src/Homescreen/PatientHistoryModal.tsx) | Call #6 |
 | [`src/Homescreen/TriageWizard.tsx`](src/Homescreen/TriageWizard.tsx) | Call #11 and use `data.triage` as the result and `data.record_id` as the record ID |
 | [`src/Homescreen/ReviewModal.tsx`](src/Homescreen/ReviewModal.tsx) | Call #13 |

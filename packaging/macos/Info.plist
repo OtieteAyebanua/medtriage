@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Template: packaging/publish.sh fills in the placeholders for each app. -->
 <plist version="1.0">
 <dict>
   <key>CFBundleName</key>
-  <string>MedTriage</string>
+  <string>__APP_NAME__</string>
   <key>CFBundleDisplayName</key>
-  <string>MedTriage</string>
+  <string>__APP_NAME__</string>
   <key>CFBundleIdentifier</key>
-  <string>org.medtriage.app</string>
+  <string>__BUNDLE_ID__</string>
   <key>CFBundleExecutable</key>
-  <string>MedTriage-launcher</string>
+  <string>launcher</string>
   <key>CFBundleIconFile</key>
   <string>medtriage</string>
   <key>CFBundlePackageType</key>
@@ -24,5 +25,8 @@
   <string>public.app-category.medical</string>
   <key>NSHighResolutionCapable</key>
   <true/>
+  <!-- The client has no window of its own (it opens the app in a browser window), so no Dock icon -->
+  <key>LSUIElement</key>
+  __UI_ELEMENT__
 </dict>
 </plist>

@@ -1,0 +1,3 @@
+#!/bin/bash
+# What runs when someone clicks "MedTriage.app": find the facility server and open it in an app window.
+exec "$(cd "$(dirname "$0")/../Resources/app" && pwd)/MedTriage"

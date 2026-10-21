@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import styles from './Homescreen.module.css';
-import { PHOTO_ACCEPT, PHOTO_MAX_BYTES } from '@/api';
+import { PHOTO_ACCEPT, PHOTO_SOURCE_MAX_BYTES } from '@/api';
 import { Avatar, Icon } from './shared';
 
 interface Props {
@@ -55,8 +55,8 @@ export default function PhotoPicker({
       setError('Choose a JPEG, PNG or WebP image.');
       return;
     }
-    if (file.size > PHOTO_MAX_BYTES) {
-      setError('Photo must be 5 MB or smaller.');
+    if (file.size > PHOTO_SOURCE_MAX_BYTES) {
+      setError('Photo must be 25 MB or smaller.');
       return;
     }
     setPreview(URL.createObjectURL(file));
@@ -101,11 +101,11 @@ export default function PhotoPicker({
           </button>
         )}
         {hasStored && onRemove && (
-          <button type="button" className={`${styles.btnLink} ${styles.textDanger}`} onClick={onRemove} disabled={disabled}>
+          <button type="button" className={`${styles.btnLink} ${styles.btnLinkDanger}`} onClick={onRemove} disabled={disabled}>
             Remove photo
           </button>
         )}
-        <span className={styles.inputHint}>JPEG, PNG or WebP · up to 5 MB</span>
+        <span className={styles.inputHint}>JPEG, PNG or WebP · resized automatically</span>
         {error && <span className={styles.fieldError}>{error}</span>}
       </div>
     </div>

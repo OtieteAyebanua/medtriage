@@ -272,6 +272,7 @@
 
 .btnPrimary,
 .btnSecondary,
+.btnDanger,
 .btnGhost {
   display: inline-flex;
   align-items: center;
@@ -346,6 +347,27 @@
 
 .btnLink:hover {
   text-decoration: underline;
+}
+
+/* Destructive actions, e.g. removing a patient photo */
+.btnLinkDanger {
+  color: var(--danger);
+}
+
+.btnDanger {
+  background: var(--surface);
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.btnDanger:hover:not(:disabled) {
+  background: var(--danger);
+  color: #fff;
+}
+
+.btnDanger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .iconButton {
