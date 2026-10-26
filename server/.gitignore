@@ -6,6 +6,14 @@
 # dotenv files
 .env
 
+# Local Python ML environment and bytecode
+.venv/
+__pycache__/
+*.py[cod]
+artifacts/
+training_data.json
+training_data.jsonl
+
 # User-specific files
 *.rsuser
 *.suo

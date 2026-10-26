@@ -1,12 +1,12 @@
 namespace MedTriage.Server.Services.Triage;
 
-/// <summary>An AI model that can assess a patient. <see cref="InferenceService"/> picks one from "Inference:Provider".</summary>
+/// <summary>The local model interface used by <see cref="InferenceService"/>.</summary>
 public interface ITriageModel
 {
-    /// <summary>"ollama" or "external".</summary>
+    /// <summary>"random_forest".</summary>
     string Engine { get; }
 
-    /// <summary>Shown to staff, e.g. "qwen2.5:1.5b".</summary>
+    /// <summary>Shown to staff, e.g. "MedTriage Random Forest".</summary>
     string Name { get; }
 
     /// <summary>

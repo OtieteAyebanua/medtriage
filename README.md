@@ -13,6 +13,8 @@ npm run db:setup              # creates the SQLite DB and loads the full demo da
 npm run dev                   # http://localhost:3000
 ```
 
+To start the complete local development stack (Vite frontend, .NET API, and Random Forest model service) together, run `npm run program` from the project root. Open http://localhost:3000; press Ctrl+C to stop all three processes.
+
 ### Demo logins (password for all: `password123`)
 
 | Employee ID | Name | Role |
@@ -40,41 +42,9 @@ The demo dataset contains 20 patients (14 with placeholder photos), a 33-symptom
 | `npm run prisma:seed` | Upsert staff + symptom catalogue only |
 | `npm run lint` | oxlint |
 
-## Configuration (`.env`)
+## Local model service
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `DATABASE_URL` | `file:./dev.db` | Prisma datasource (SQLite; switch the provider in `prisma/schema.prisma` for PostgreSQL) |
-| `SEED_PASSWORD` | `password123` | Password given to seeded staff |
-| `UPLOAD_DIR` | `./uploads` | Where patient photos are stored on the server |
-| `INFERENCE_URL` | *(unset)* | External AI model endpoint. Unset → built-in rule engine |
-| `INFERENCE_TIMEOUT_MS` | `5000` | Timeout before falling back to the rule engine |
-| `INFERENCE_API_KEY` | *(unset)* | Sent as `Authorization: Bearer …` if set |
-
-## Plugging in the AI model
-
-`/api/triage` calls `runInference()` in [`src/lib/inference.ts`](src/lib/inference.ts). When `INFERENCE_URL` is set it POSTs this JSON and expects the response below; otherwise (or if the service fails) it uses the rule engine in `src/lib/triage-engine.ts`, so the facility keeps working.
-
-```jsonc
-// POST {INFERENCE_URL}
-{
-  "patient": { "age": 34, "sex": "Female", "blood_type": "O+", "chronic_conditions": "Asthma", "allergies": null },
-  "visit_type": "walk_in",
-  "chief_complaint": "High fever and headache for 3 days",
-  "symptoms": [{ "symptom_id": 1, "name": "High Fever", "category": "systemic", "severity": "moderate", "duration": "3–7 days", "notes": null }],
-  "vitals": { "temperature": 38.9, "blood_pressure": "118/76", "heart_rate": 98, "oxygen_level": 97, "respiratory_rate": 18 }
-}
-
-// 200 response
-{
-  "urgency_score": 3,                       // 1 (immediate) … 5 (non-urgent) — required
-  "triage_level": "urgent",                 // optional; derived from the score if absent
-  "confidence": 0.87,                       // optional, 0–1
-  "reasoning": "…",                         // required
-  "suggested_tests": ["Malaria RDT"],
-  "differential_diagnosis": [{ "condition": "Malaria", "probability": 0.72, "rationale": "…" }]
-}
-```
+The .NET API calls the Random Forest Python sidecar at `http://127.0.0.1:8001`. Both services bind to loopback, and the API rejects non-loopback model URLs. There is no remote inference endpoint or API key configuration. If the local sidecar is unavailable, the built-in rule engine supplies the triage result. See [`server/README.md`](server/README.md) for local setup and model training instructions.
 
 ## API overview
 

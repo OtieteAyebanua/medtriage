@@ -55,7 +55,7 @@ public class TriageService(
             throw ApiException.BadRequest($"Unknown symptom IDs: {string.Join(", ", unknown)}", "symptoms");
         }
 
-        // ---- 1. Inference (external model if configured, otherwise the rule engine) ----
+        // ---- 1. Local model inference, with the rule engine as safety fallback ----
         var result = await inference.AssessAsync(new InferenceRequest(
             new InferencePatient(
                 ClinicalValues.AgeFrom(patient.DateOfBirth),

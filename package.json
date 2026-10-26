@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "program": "bash scripts/program.sh",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "oxlint",

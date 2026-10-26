@@ -1,0 +1,29 @@
+[
+  {
+    "patient": {
+      "age": 34,
+      "sex": "Female",
+      "chronic_conditions": "asthma",
+      "allergies": "penicillin"
+    },
+    "visit_type": "walk_in",
+    "chief_complaint": "Fever and headache for three days",
+    "symptoms": [
+      {
+        "name": "High Fever",
+        "severity": "moderate",
+        "duration": "3 days",
+        "notes": "Patient reports chills"
+      }
+    ],
+    "vitals": {
+      "temperature": 38.9,
+      "blood_pressure": "118/76",
+      "heart_rate": 98,
+      "oxygen_level": 97,
+      "respiratory_rate": 18
+    },
+    "final_triage_level": "urgent",
+    "override_status": "accepted"
+  }
+]

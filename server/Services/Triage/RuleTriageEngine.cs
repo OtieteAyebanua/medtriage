@@ -4,7 +4,8 @@ using MedTriage.Server.Dtos;
 namespace MedTriage.Server.Services.Triage;
 
 /// <summary>
-/// Built-in rule-based triage, used when no external model is configured or it fails.
+/// Built-in rule-based triage. Runs on every triage: it is the safety floor under the AI model's level, and the
+/// whole result when no model is configured or the model fails (see <see cref="InferenceService"/>).
 /// Ported from the original src/lib/triage-engine.ts: red-flag vitals and symptoms set the urgency
 /// (1 = immediate … 5 = non-urgent), then symptom patterns produce a ranked differential diagnosis.
 /// </summary>

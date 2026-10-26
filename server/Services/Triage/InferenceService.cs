@@ -1,9 +1,7 @@
-using Microsoft.Extensions.Options;
-
 namespace MedTriage.Server.Services.Triage;
 
 /// <summary>
-/// Combines the AI model chosen by "Inference:Provider" with the built-in rule engine:
+/// Combines the local Random Forest with the built-in rule engine:
 /// <list type="bullet">
 /// <item>No model configured, or it fails (unreachable, too slow, invalid reply): the rule engine's result.</item>
 /// <item>Otherwise the model's result, with the rule engine as a <b>safety floor</b>: if the rules find the patient
@@ -12,43 +10,26 @@ namespace MedTriage.Server.Services.Triage;
 /// </list>
 /// </summary>
 public class InferenceService(
-    IOptions<InferenceOptions> options,
     RuleTriageEngine rules,
-    OllamaTriageModel ollama,
-    ExternalTriageModel external,
+    RandomForestTriageModel localModel,
     ILogger<InferenceService> logger) : IInferenceService
 {
     public async Task<InferenceResult> AssessAsync(InferenceRequest request, CancellationToken ct = default)
     {
         var ruleResult = rules.Evaluate(request);
 
-        var model = SelectModel();
-        if (model is null) return ruleResult;
-
         InferenceResult modelResult;
         try
         {
-            modelResult = await model.AssessAsync(request, ct);
+            modelResult = await localModel.AssessAsync(request, ct);
         }
         catch (Exception ex) when (!ct.IsCancellationRequested)
         {
-            logger.LogWarning("AI model {Model} ({Engine}) failed, using the rule engine instead: {Error}", model.Name, model.Engine, ex.Message);
+            logger.LogWarning("Local model {Model} ({Engine}) failed, using the rule engine instead: {Error}", localModel.Name, localModel.Engine, ex.Message);
             return ruleResult;
         }
 
         return ApplySafetyFloor(modelResult, ruleResult);
-    }
-
-    private ITriageModel? SelectModel()
-    {
-        var config = options.Value;
-        return config.Provider.Trim().ToLowerInvariant() switch
-        {
-            "ollama" => ollama,
-            "http" => external,
-            "rules" => null,
-            _ => string.IsNullOrWhiteSpace(config.Url) ? null : external, // "auto"
-        };
     }
 
     private const int MaxMergedTests = 6;

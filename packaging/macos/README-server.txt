@@ -29,13 +29,12 @@ Connecting
   - Tablets and phones: open the address in the browser, then "Add to Home Screen".
   - To use MedTriage on this same Mac, install the "MedTriage" app here too.
 
-AI model (optional, recommended)
-  MedTriage Server works on its own using built-in safety rules. To add the AI model:
-  1. Install Ollama from https://ollama.com (needs internet once).
-  2. Open Terminal and run:   ollama pull qwen2.5:1.5b      (about 1 GB)
-  3. Keep the Ollama app running (it shows a llama icon in the menu bar).
-  When MedTriage Server starts, its window says whether the AI model is ready. If Ollama
-  isn't running, triage still works using the safety rules.
+Random Forest model (optional)
+  MedTriage Server uses its built-in safety rules if the local Random Forest service is not
+  running. The Python service and trained model artifact are not bundled in this installer.
+  To run the model, install Python 3.9+, copy the server Python files and a trained
+  artifacts/triage_random_forest.joblib to the server computer, install requirements-ml.txt,
+  then run `python model_service.py`. The service listens on localhost port 8001.
 
 Demo accounts
   The server starts with demo data. Every demo account's password is demo123

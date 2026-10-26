@@ -160,8 +160,8 @@ export interface RunTriageInput {
 export interface RunTriageResult {
   record_id: number;
   /** Which engine assessed the patient */
-  engine: 'ollama' | 'external' | 'rules';
-  /** The AI model's name, e.g. "qwen2.5:1.5b"; null for the rule engine */
+  engine: 'random_forest' | 'rules';
+  /** The model's name; null for the rule engine */
   model: string | null;
   /** The AI model's own level when the safety rules raised it to a more urgent one */
   safety_raised_from: number | null;

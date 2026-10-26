@@ -449,8 +449,8 @@ Response `200`:
 {
   "success": true,
   "record_id": 48,
-  "engine": "ollama",
-  "model": "qwen2.5:1.5b",
+  "engine": "random_forest",
+  "model": "MedTriage Random Forest",
   "safety_raised_from": null,
   "triage": {
     "urgency_level": 3,
@@ -469,7 +469,7 @@ Response `200`:
 
 - `urgency_level` is 1–5. The UI's result screen is driven by this number.
 - `probability` is 0–1, sorted from highest to lowest.
-- `engine` is `"ollama"` (local AI model), `"external"` (model server) or `"rules"` (built-in rule engine). `model` is the AI model's name, or `null` for the rules. The result screen shows both. Neither is stored.
+- `engine` is `"random_forest"` (the configured HTTP model service) or `"rules"` (built-in rule engine). `model` is the configured model name, or `null` for the rules. The result screen shows both. Neither is stored.
 - `safety_raised_from` is the AI model's own level when the rule engine found warning signs and raised it to a more urgent one (see [Inference service](#inference-service)); otherwise `null`.
 - `urgency_category` isn't displayed, but `TriageResult` in `types.ts` requires it.
 
@@ -619,30 +619,17 @@ Response `200`:
 
 ---
 
-## Inference service
+## Local inference
 
-`POST /api/triage` always runs the built-in **rule engine**, and also asks the AI model chosen by `Inference:Provider`:
+`POST /api/triage` calls the Random Forest sidecar at `http://127.0.0.1:8001/triage`. The endpoint is restricted to loopback addresses; the app has no remote inference provider or API key configuration. The built-in rule engine also runs on each assessment as a safety floor and fallback.
 
-| Provider | Model |
-|---|---|
-| `ollama` (current default) | A small local language model in [Ollama](https://ollama.com), default `qwen2.5:1.5b`, a placeholder until the main model is ready. The server sends the patient as a prompt and asks for JSON in a fixed shape (`server/Services/Triage/TriagePrompt.cs`). |
-| `http` | An external model server speaking the contract below. |
-| `rules` | No model; rule engine only. |
-| `auto` | `http` when `Inference:Url` is set, otherwise `rules`. |
+If the local model service is unavailable, too slow, or returns an invalid response, the rule engine supplies the result. If it detects greater urgency than the model, the rule result wins and `safety_raised_from` records the model's original level.
 
-How the two are combined (`InferenceService`):
-- **No model, or it fails** (not running, model not downloaded, too slow, invalid reply): the rule engine's result. Triage never stops working.
-- **Safety floor:** if the rule engine finds the patient **more urgent** than the model does, the more urgent level wins. The reasoning then says "Safety check: the rule engine raised this from Level X to Level Y…" and the response's `safety_raised_from` is set. A model can add explanation and possible conditions, but can't under-triage a red flag the rules catch.
+Start the whole local stack with `npm run program`, or start the sidecar from `server/` with `.venv/bin/python model_service.py`. The sidecar loads `artifacts/triage_random_forest.joblib` and listens only on `127.0.0.1:8001`.
 
-**Setting up Ollama on the server computer:** install Ollama, run `ollama pull qwen2.5:1.5b` once (about 1 GB, needs internet), then keep the Ollama app running. The server loads the model when it starts and says in its console if Ollama isn't running or the model is missing.
+### Local model request and response
 
-### External model contract (`http` provider)
-
-```
-POST {Inference:Url}
-Content-Type: application/json
-Authorization: Bearer {Inference:ApiKey}     (only if set)
-```
+The .NET API sends this snake_case JSON to the loopback sidecar:
 
 Request body (snake_case):
 
@@ -658,7 +645,7 @@ Request body (snake_case):
 }
 ```
 
-Expected `200` response:
+The sidecar returns `200` with:
 
 ```json
 {
@@ -671,7 +658,7 @@ Expected `200` response:
 }
 ```
 
-Validate this response strictly; a bad model reply must never produce a bad record:
+The API validates the response strictly; a bad model reply falls back to the rule engine:
 - `urgency_score` (1–5) and a non-empty `reasoning` are required. Otherwise, treat the call as failed and use the rule engine.
 - `triage_level` is optional. Derive it from the score if it's missing or invalid.
 - `confidence` must be 0–1; otherwise store `null`.
@@ -679,19 +666,15 @@ Validate this response strictly; a bad model reply must never produce a bad reco
 
 ### Configuration
 
-These live in `server/appsettings.json`. Any of them can be overridden with an environment variable using `__` (e.g. `Inference__Url`).
+These live in `server/appsettings.json`. Any of them can be overridden with an environment variable using `__` (e.g. `Inference__LocalModelUrl`). The model URL must resolve to a loopback address.
 
 | Setting | Default | Purpose |
 |---|---|---|
 | `ConnectionStrings:MedTriage` | `Data Source=medtriage.db` | SQLite database file |
 | `Uploads:Directory` | `uploads` | Where patient photos are stored |
-| `Inference:Provider` | `ollama` | `ollama`, `http`, `rules` or `auto` (see above) |
-| `Inference:Ollama:Model` | `qwen2.5:1.5b` | The Ollama model to use |
-| `Inference:Ollama:Url` | `http://localhost:11434` | Where Ollama runs |
-| `Inference:Ollama:TimeoutMs` | `60000` | Give up on the model and use the rule engine after this |
-| `Inference:Url` | *(empty)* | External model endpoint for the `http` provider |
-| `Inference:TimeoutMs` | `5000` | Timeout for the external model |
-| `Inference:ApiKey` | *(empty)* | Sent to the external model as a bearer token if set |
+| `Inference:LocalModelUrl` | `http://127.0.0.1:8001/triage` | Loopback-only Random Forest sidecar endpoint |
+| `Inference:ModelName` | `MedTriage Random Forest` | Model name shown in the triage result |
+| `Inference:TimeoutMs` | `5000` | Timeout for the local model service |
 
 ---
 
