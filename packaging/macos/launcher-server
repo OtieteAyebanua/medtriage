@@ -1,5 +1,0 @@
-#!/bin/bash
-# What runs when someone clicks "MedTriage Server.app": start the server in a Terminal window,
-# which shows the server's address. Closing that window stops the server.
-# (If it's already running, the new window just says so.)
-open -a Terminal "$(cd "$(dirname "$0")/../Resources/app" && pwd)/MedTriageServer"

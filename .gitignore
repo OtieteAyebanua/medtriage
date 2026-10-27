@@ -34,5 +34,5 @@ tsconfig.tsbuildinfo
 # Patient photos
 uploads
 
-# Packaged desktop builds (packaging/publish.sh)
+# Old packaged desktop builds
 release

@@ -29,45 +29,24 @@ dotnet ef database update
 
 The server does not seed any data. Staff, the symptom catalogue and patients all live in `medtriage.db`, so keep that file: a new, empty database has no staff accounts and no symptoms.
 
-## Installing at a facility
+## Running at a facility
 
-MedTriage is two separate apps:
+The server runs on **one** facility computer that stays on. Staff computers, tablets and phones open its address in a browser (on phones, "Add to Home Screen").
 
-| App | Install on | What it does |
-|---|---|---|
-| **MedTriage Server** (this project) | The **one** facility computer that stays on | Database, API, triage engine, and the web screens. Its console window shows its network address. |
-| **MedTriage** ([`../client`](../client/README.md)) | Every **staff computer** | Finds the server on the Wi-Fi/LAN and opens it in an app window. No data of its own. |
-
-Tablets and phones need no app: they open the server's address in the browser and use "Add to Home Screen".
-
-Build the installers from the repo root:
+Publish a self-contained build from this folder; the React app is built and shipped as `wwwroot/` next to the executable:
 
 ```bash
-packaging/publish.sh                      # everything into release/
-packaging/publish.sh server               # just the server, every platform
-packaging/publish.sh client osx-arm64     # just one app/platform (win-x64, linux-x64, osx-arm64, osx-x64)
+dotnet publish -c Release -r osx-arm64 --self-contained    # or win-x64, linux-x64, osx-x64
 ```
 
-| | MedTriage Server | MedTriage (client) |
-|---|---|---|
-| Windows | `medtriage-server-windows-x64.zip` | `medtriage-windows-x64.zip` |
-| Linux | `medtriage-server-linux-x64.tar.gz` | `medtriage-linux-x64.tar.gz` |
-| macOS | `medtriage-server-macos-{arm64,x64}.dmg` | `medtriage-macos-{arm64,x64}.dmg` |
-
-Windows: unzip and double-click `Install <app>.cmd`. Linux: extract and run `./install.sh`. macOS: open the `.dmg` and drag the app to Applications. Each package has a `README.txt` for facility staff. The packages are self-contained (no .NET or Node needed), and Mac packages must be built on a Mac.
-
-**How clients find the server:** the server answers UDP broadcasts on port 4001 (`Discovery:Port`) with its HTTP port and computer name, and the client takes the server's IP from the reply. If nothing answers (e.g. a network that blocks broadcasts), the client shows a "Connect to server" screen where staff type the address from the server's window. Firewalls must allow TCP 4000 and UDP 4001 on the server.
-
-| | Development (`dotnet run`) | Installed server |
+| | Development (`dotnet run`) | Published server |
 |---|---|---|
 | Frontend | Vite dev server (`npm run dev`) | Built React app in `wwwroot/`, served by this server |
 | Listens on | `localhost:4000` | `0.0.0.0:4000` (reachable on the LAN) |
 | Data folder | `server/` | `%LOCALAPPDATA%\MedTriage` (Windows), `~/Library/Application Support/MedTriage` (macOS), `~/.local/share/MedTriage` (Linux) |
 | Console banner | No | Yes (`Server:ShowBanner`) |
 
-Installed-server settings are in `appsettings.Production.json`. The database is created or upgraded automatically on startup, and reinstalling keeps the data folder. Installer templates live in `packaging/` (`windows/`, `linux/`, `macos/`; `publish.sh` fills them in for each app).
-
-The Mac apps are signed ad hoc only, so on first launch macOS says they "could not be verified" and staff must click **Open Anyway** in System Settings → Privacy & Security. Removing that step requires an Apple Developer ID and notarization.
+Published-server settings are in `appsettings.Production.json`. The database is created or upgraded automatically on startup. Firewalls must allow TCP 4000 on the server.
 
 ## How the code is organised
 
@@ -140,7 +119,6 @@ Any setting can also be set with an environment variable, using `__` between the
 | `Uploads:Directory` | `uploads` | Where patient photos are stored, relative to the data folder |
 | `Urls` | `http://0.0.0.0:4000` (installed) | Address and port the server listens on |
 | `Server:ShowBanner` | `true` (installed) | Show the address banner in the console window |
-| `Discovery:Enabled` / `Discovery:Port` | `true` / `4001` | Answer MedTriage apps searching the network |
 | `Inference:DiagnosisModelUrl` | `http://127.0.0.1:8002/diagnose` | Loopback-only diagnosis model sidecar endpoint |
 | `Inference:TimeoutMs` | `5000` | Diagnosis model request timeout |
 

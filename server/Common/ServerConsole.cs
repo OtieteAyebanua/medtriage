@@ -4,8 +4,7 @@ using System.Net.Sockets;
 namespace MedTriage.Server.Common;
 
 /// <summary>
-/// What the installed server shows in its console window. Staff don't use the server directly:
-/// they open the MedTriage app on their own computer, which finds this server on the network.
+/// What the published server shows in its console window: the addresses staff open in their browser.
 /// Enabled by "Server:ShowBanner" (on in appsettings.Production.json).
 /// </summary>
 public static class ServerConsole
@@ -52,10 +51,9 @@ public static class ServerConsole
         Console.WriteLine();
         Console.WriteLine("  MedTriage Server is running.");
         Console.WriteLine();
-        Console.WriteLine("  Staff computers: open the MedTriage app. It finds this server automatically.");
         if (addresses.Count > 0)
         {
-            Console.WriteLine("  If it asks for an address, or on tablets and phones (in the browser), use:");
+            Console.WriteLine("  On staff computers, tablets and phones, open this address in the browser:");
             foreach (var address in addresses) Console.WriteLine($"      {address}");
         }
         else

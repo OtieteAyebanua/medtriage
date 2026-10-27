@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import './style.css';
 import { HealthcareWorker, loginWithCredentials } from './authService';
 
 export type { HealthcareWorker } from './authService';

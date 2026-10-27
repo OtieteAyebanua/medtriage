@@ -54,7 +54,5 @@ src/Homescreen/    the app: triage wizard, patients, history, review queue, ward
 src/admin/         admin console: practitioner management
 src/api.ts         API client
 server/            ASP.NET Core API, SQLite database, diagnosis model sidecar
-client/            desktop client that finds the server on the LAN
-packaging/         installers for macOS, Windows and Linux (publish.sh)
 scripts/           development helpers (program.sh)
 ```

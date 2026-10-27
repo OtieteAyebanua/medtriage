@@ -93,12 +93,6 @@ builder.Services.AddSingleton<RuleTriageEngine>();
 builder.Services.AddHttpClient<DiagnosisModel>();
 builder.Services.AddScoped<IInferenceService, InferenceService>();
 
-// ---- Network discovery, so MedTriage apps on the facility network find this server by themselves ----
-if (builder.Configuration.GetValue("Discovery:Enabled", true))
-{
-    builder.Services.AddHostedService<DiscoveryResponder>();
-}
-
 var app = builder.Build();
 
 // ---- Installed server: console banner, and a clear message instead of a crash if it's started twice ----

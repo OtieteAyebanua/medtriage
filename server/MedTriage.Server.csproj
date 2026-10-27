@@ -4,7 +4,6 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <ApplicationIcon>..\packaging\assets\medtriage.ico</ApplicationIcon>
     <!-- The React app (package.json, src/, dist/) lives one folder up -->
     <FrontendRoot>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/..'))</FrontendRoot>
   </PropertyGroup>

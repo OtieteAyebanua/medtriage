@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import '../auth/style.css';
 import styles from './Admin.module.css';
 import { adminLogin, errorMessage } from '@/api';
 
