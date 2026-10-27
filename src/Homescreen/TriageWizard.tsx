@@ -1,5 +1,3 @@
-'use client';
-
 import React, { useEffect, useMemo, useState } from 'react';
 import styles from './Homescreen.module.css';
 import { errorMessage, RunTriageResult, runTriage as runTriageRequest } from '@/api';

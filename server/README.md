@@ -27,7 +27,7 @@ The database file is `medtriage.db` in this folder (git-ignored). To create it o
 dotnet ef database update
 ```
 
-On first start, an empty database is filled with demo data (`Data/DemoSeeder.cs`): 8 staff, 33 symptoms, 20 patients and ~45 visits over the last 30 days, with doctor reviews and 6 visits waiting in the review queue. Every demo account's password is `demo123`; the login screen's quick-demo buttons use `HW-DOC-001` (doctor) and `HW-NUR-002` (nurse). Turn this off with `DemoData:Enabled=false`. To start over, delete the database file and restart.
+The server does not seed any data. Staff, the symptom catalogue and patients all live in `medtriage.db`, so keep that file: a new, empty database has no staff accounts and no symptoms.
 
 ## Installing at a facility
 
@@ -141,8 +141,6 @@ Any setting can also be set with an environment variable, using `__` between the
 | `Urls` | `http://0.0.0.0:4000` (installed) | Address and port the server listens on |
 | `Server:ShowBanner` | `true` (installed) | Show the address banner in the console window |
 | `Discovery:Enabled` / `Discovery:Port` | `true` / `4001` | Answer MedTriage apps searching the network |
-| `DemoData:Enabled` | `true` | Fill an empty database with demo data on startup |
-| `DemoData:Password` | `demo123` | Password for the demo staff accounts |
 | `Inference:DiagnosisModelUrl` | `http://127.0.0.1:8002/diagnose` | Loopback-only diagnosis model sidecar endpoint |
 | `Inference:TimeoutMs` | `5000` | Diagnosis model request timeout |
 

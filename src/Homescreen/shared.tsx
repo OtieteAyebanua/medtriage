@@ -1,5 +1,3 @@
-'use client';
-
 import React, { useEffect, useRef } from 'react';
 import styles from './Homescreen.module.css';
 import { clampLevel, initials, photoUrl, TRIAGE_LEVELS, VitalStatus } from './clinical';

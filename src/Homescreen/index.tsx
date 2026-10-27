@@ -1,10 +1,10 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import  { useCallback, useEffect, useRef, useState } from 'react';
 import styles from './Homescreen.module.css';
 import { Icon, IconName, ToastStack } from './shared';
 import { fullName } from './clinical';
 import TriageWizard, { PatientRequest } from './TriageWizard';
 import PatientsTab from './PatientsTab';
-import ReportsTab from './ReportsTab';
+import WardOverviewTab from './WardOverviewTab';
 import QueueTab from './QueueTab';
 import RegisterPatientModal from './RegisterPatientModal';
 import PatientHistoryModal from './PatientHistoryModal';
@@ -44,7 +44,7 @@ export default function Homescreen({ currentUser, onLogout }: HomescreenProps) {
   const [symptoms, setSymptoms] = useState<SymptomItem[]>([]);
 
   const [wardReport, setWardReport] = useState<WardReport | null>(null);
-  const [reportLoading, setReportLoading] = useState(false);
+  const [reportLoading, setReportLoading] = useState(true);
 
   const [queue, setQueue] = useState<QueueRecord[]>([]);
   const [queueLoading, setQueueLoading] = useState(false);
@@ -106,16 +106,16 @@ export default function Homescreen({ currentUser, onLogout }: HomescreenProps) {
     }
   }, [isDoctor, toast]);
 
-  // Initial load. The queue is loaded up front too so its tab badge shows the count.
+  // Initial load. Every tab's data is fetched up front; the queue also feeds its tab badge.
   useEffect(() => {
     loadPatients();
     loadSymptoms();
+    loadWardReport();
     loadQueue();
-  }, [loadPatients, loadSymptoms, loadQueue]);
+  }, [loadPatients, loadSymptoms, loadWardReport, loadQueue]);
 
   const switchTab = (tab: Tab) => {
     setActiveTab(tab);
-    if (tab === 'reports') loadWardReport();
     if (tab === 'queue') loadQueue();
   };
 
@@ -154,7 +154,7 @@ export default function Homescreen({ currentUser, onLogout }: HomescreenProps) {
   const tabs: Array<{ id: Tab; label: string; icon: IconName; badge?: number; badgeUrgent?: boolean }> = [
     { id: 'triage', label: 'New triage', icon: 'stethoscope' },
     { id: 'patients', label: 'Patients', icon: 'users', badge: patients.length || undefined },
-    { id: 'reports', label: 'Ward overview', icon: 'chart' },
+    { id: 'ward', label: 'Ward overview', icon: 'chart' },
   ];
   if (isDoctor) {
     tabs.push({ id: 'queue', label: 'Review queue', icon: 'clipboard', badge: queue.length || undefined, badgeUrgent: true });
@@ -241,7 +241,7 @@ export default function Homescreen({ currentUser, onLogout }: HomescreenProps) {
           />
         )}
 
-        {activeTab === 'reports' && <ReportsTab report={wardReport} loading={reportLoading} onRefresh={loadWardReport} />}
+        {activeTab === 'ward' && <WardOverviewTab report={wardReport} loading={reportLoading} onRefresh={loadWardReport} />}
 
         {activeTab === 'queue' && isDoctor && (
           <QueueTab

@@ -1,5 +1,3 @@
-'use client';
-
 import React from 'react';
 import styles from './Homescreen.module.css';
 import { formatDateTime, LEVEL_LIST, levelFromKey, RECORD_STATUS_LABEL, relativeTime } from './clinical';
@@ -12,7 +10,7 @@ interface Props {
   onRefresh: () => void;
 }
 
-export default function ReportsTab({ report, loading, onRefresh }: Props) {
+export default function WardOverviewTab({ report, loading, onRefresh }: Props) {
   const total = report?.total_records ?? 0;
 
   return (

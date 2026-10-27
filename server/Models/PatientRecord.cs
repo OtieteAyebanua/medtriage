@@ -1,9 +1,5 @@
 namespace MedTriage.Server.Models;
 
-/// <summary>
-/// One visit / triage assessment, including the AI result and the doctor's review.
-/// Table: patient_records. See "Record lifecycle" in API_README.md.
-/// </summary>
 public class PatientRecord
 {
     public int RecordId { get; set; }

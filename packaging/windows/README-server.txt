@@ -31,10 +31,6 @@ Diagnosis model (optional)
   Models/newmodel.joblib to the server computer, install requirements-diagnosis.txt, then run
   `python diagnosis_service.py`. The service listens on localhost port 8002.
 
-Demo accounts
-  The server starts with demo data. Every demo account's password is demo123
-  (doctor HW-DOC-001, nurse HW-NUR-002).
-
 Your data
   The database and patient photos are stored in %LOCALAPPDATA%\MedTriage.
   Reinstalling or updating keeps them. Back this folder up regularly.

@@ -2,13 +2,6 @@ using System.Linq.Expressions;
 
 namespace MedTriage.Server.Repositories;
 
-/// <summary>
-/// The only layer that talks to the database. One generic repository serves every table
-/// (inject <c>IDocumentRepository&lt;Patient&gt;</c>, <c>IDocumentRepository&lt;Symptom&gt;</c>, …).
-///
-/// Reads are no-tracking by default. Use <c>tracking: true</c> (or <see cref="GetByIdAsync"/>) when you
-/// intend to change the entity and then call <see cref="SaveChangesAsync"/>.
-/// </summary>
 public interface IDocumentRepository<T> where T : class
 {
     /// <summary>Start a custom query (filters, includes, ordering, grouping) for anything the helpers below don't cover.</summary>
@@ -36,9 +29,5 @@ public interface IDocumentRepository<T> where T : class
 
     void RemoveRange(IEnumerable<T> entities);
 
-    /// <summary>
-    /// Writes all pending changes in one transaction. Repositories share the request's DbContext,
-    /// so this also saves changes made through other repositories in the same request.
-    /// </summary>
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

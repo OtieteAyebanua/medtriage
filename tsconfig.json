@@ -27,7 +27,6 @@
     "vite.config.ts"
   ],
   "exclude": [
-    "node_modules",
-    "prisma"
+    "node_modules"
   ]
 }

@@ -195,7 +195,7 @@ export interface WardRecord {
   recorder?: { first_name: string; last_name: string; position?: string } | null;
 }
 
-export type Tab = 'triage' | 'patients' | 'reports' | 'queue';
+export type Tab = 'triage' | 'patients' | 'ward' | 'queue';
 
 export interface ToastMessage {
   id: number;

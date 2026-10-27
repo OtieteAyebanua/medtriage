@@ -28,13 +28,11 @@ dist-ssr
 .env.*
 !.env.example
 
-# Next.js
-.next
+# TypeScript build cache
 tsconfig.tsbuildinfo
 
 # Patient photos
 uploads
-.next-*
 
 # Packaged desktop builds (packaging/publish.sh)
 release

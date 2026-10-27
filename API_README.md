@@ -1,54 +1,10 @@
 # MedTriage AI: Backend API
 
-The frontend (Vite + React) currently runs entirely on mock data: [`src/Homescreen/mockData.ts`](src/Homescreen/mockData.ts), a hard-coded staff list in [`src/auth/authService.ts`](src/auth/authService.ts), and `localStorage`. This document lists every endpoint the frontend needs, the exact request and response shapes it expects, and where in the frontend each one gets wired in.
+This document describes every endpoint of the MedTriage API: the exact request and response shapes the frontend expects.
 
 The response shapes match [`src/Homescreen/types.ts`](src/Homescreen/types.ts). If you change a shape here, change that file too.
 
-The original Next.js implementation of all these routes is still in git history (see [Reference](#reference-the-original-implementation)).
-
----
-
-## Progress
-
-### Backend
-
-- [x] 1. `POST /api/auth/login`
-- [x] 2. `GET /api/auth/session`
-- [x] 3. `POST /api/auth/logout`
-- [x] 4. `GET /api/patients`
-- [x] 5. `POST /api/patients`
-- [x] 6. `GET /api/patients/:id`
-- [x] 7. `POST /api/patients/:id/photo`
-- [x] 8. `GET /api/patients/:id/photo`
-- [x] 9. `DELETE /api/patients/:id/photo`
-- [x] 10. `GET /api/symptoms`
-- [x] 11. `POST /api/triage`
-- [x] 12. `GET /api/records/queue`
-- [x] 13. `PUT /api/records/:id/review`
-- [x] 14. `GET /api/reports/ward`
-- [x] 15. `POST /api/admin/auth/login`
-- [x] 16. `GET /api/admin/auth/session`
-- [x] 17. `POST /api/admin/auth/logout`
-- [x] 18. `GET /api/admin/practitioners`
-- [x] 19. `POST /api/admin/practitioners`
-- [x] 20. `PUT /api/admin/practitioners/:id`
-- [x] 21. `PUT /api/admin/practitioners/:id/status`
-
-### Frontend wiring
-
-See [Frontend wiring](#frontend-wiring) for details on each step.
-
-- [x] Add the `/api` proxy to `vite.config.ts`
-- [x] Add the `apiFetch` helper and handle 401s
-- [x] Login, session restore and logout (#1–3)
-- [x] Load patients, symptoms, queue and ward report from the API (#4, #10, #12, #14)
-- [x] Register patient, including the photo (#5, #7)
-- [x] Photo upload from the Patients tab (#7)
-- [x] Patient history modal (#6)
-- [x] Run triage (#11)
-- [x] Doctor review (#13)
-- [x] Delete `mockData.ts`, the `localStorage` data caches and the fake login fallback
-- [x] Admin console at `/admin` (#15–21). In development the admin password is `admin123` (`server/appsettings.Development.json`)
+In development the admin console password is `admin123` (`server/appsettings.Development.json`).
 
 ---
 
@@ -113,7 +69,7 @@ The frontend expects mixed casing. Keep it as described here unless you also upd
 
 ## Data model
 
-These are the tables from the original Prisma schema. Any database works; the response shapes are what matter.
+These are the main SQLite tables (see `server/Data/MedTriageDbContext.cs`). The response shapes are what matter to the frontend.
 
 | Table | Key columns |
 |---|---|
@@ -787,117 +743,3 @@ These live in `server/appsettings.json`. Any of them can be overridden with an e
 | `Uploads:Directory` | `uploads` | Where patient photos are stored |
 | `Inference:DiagnosisModelUrl` | `http://127.0.0.1:8002/diagnose` | Loopback-only diagnosis-model sidecar endpoint |
 | `Inference:TimeoutMs` | `5000` | Timeout for the diagnosis model service |
-
----
-
-## Frontend wiring
-
-### 1. Proxy `/api` to the backend
-
-[`vite.config.ts`](vite.config.ts) has no proxy, so relative `/api/...` calls and photo URLs fail. Add one, replacing `4000` with your backend's port:
-
-```ts
-server: {
-  port: 3000,
-  proxy: {
-    '/api': 'http://localhost:4000',
-  },
-},
-```
-
-Serving the frontend and the API from the same origin also keeps the session cookie working for `<img>` photo requests.
-
-### 2. Add a fetch helper that handles expired sessions
-
-Bring back the original `apiFetch` in [`src/Homescreen/api.ts`](src/Homescreen/api.ts). It fires one event when any request gets a 401:
-
-```ts
-export const UNAUTHENTICATED_EVENT = 'medtriage:unauthenticated';
-let unauthTimer: ReturnType<typeof setTimeout> | null = null;
-
-export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  const res = await fetch(input, init);
-  if (res.status === 401 && !unauthTimer) {
-    unauthTimer = setTimeout(() => {
-      window.dispatchEvent(new Event(UNAUTHENTICATED_EVENT));
-      unauthTimer = null;
-    }, 50);
-  }
-  return res;
-}
-```
-
-In `App.tsx`, listen for `UNAUTHENTICATED_EVENT` and sign the user out.
-
-### 3. Where each mock gets replaced
-
-| File | Change |
-|---|---|
-| [`src/auth/authService.ts`](src/auth/authService.ts#L68) | Call #1. **Remove the fallback** that signs in any unknown ID as "Clinical Staff" |
-| [`src/App.tsx`](src/App.tsx) | Call #2 on mount (show a loading state while it runs). Call #3 in `handleLogout` |
-| [`src/Homescreen/index.tsx`](src/Homescreen/index.tsx) | Load patients (#4), symptoms (#10), queue (#12, doctors only) and the ward report (#14). Fill in `loadPatients`, `loadQueue` and `loadWardReport`. Remove the `medtriage_patients` / `medtriage_queue` `localStorage` caches. After a review, reload the queue and report instead of adjusting counts locally |
-| [`src/Homescreen/RegisterPatientModal.tsx`](src/Homescreen/RegisterPatientModal.tsx) | Call #5 with **every** field (the mock drops middle name, email, allergies and chronic conditions), then #7 if a photo was picked |
-| [`src/api.ts`](src/api.ts) | `uploadPatientPhoto` (#7, shrinks the photo first) and `removePatientPhoto` (#9), used by the patient photo window |
-| [`src/Homescreen/PatientHistoryModal.tsx`](src/Homescreen/PatientHistoryModal.tsx) | Call #6 |
-| [`src/Homescreen/TriageWizard.tsx`](src/Homescreen/TriageWizard.tsx) | Call #11 and use `data.triage` as the result and `data.record_id` as the record ID |
-| [`src/Homescreen/ReviewModal.tsx`](src/Homescreen/ReviewModal.tsx) | Call #13 |
-| [`src/Homescreen/mockData.ts`](src/Homescreen/mockData.ts) | Delete it once nothing imports it |
-
-### 4. Mapping the triage wizard state to the request
-
-The wizard's `Vitals` state uses different names and holds strings:
-
-| Wizard state | Request field | Conversion |
-|---|---|---|
-| `currentPatient.patient_id` | `patientId` | |
-| `visitType` | `visitType` | |
-| `chiefComplaint` | `chiefComplaint` | trim |
-| `vitals.temp` | `vitals.temperature` | `parseFloat`, blank → `null` |
-| `vitals.bp` | `vitals.bloodPressure` | blank → `null` |
-| `vitals.heartRate` | `vitals.heartRate` | `parseInt`, blank → `null` |
-| `vitals.spo2` | `vitals.oxygenLevel` | `parseFloat`, blank → `null` |
-| `vitals.respRate` | `vitals.respiratoryRate` | `parseInt`, blank → `null` |
-| `selectedSymptoms[]` | `symptoms[]` | `{ symptomId, severity, duration, notes }` |
-
-The review modal maps to #13 like this: `decision` → `overrideAction`, `finalLevelKey` → `finalTriageLevel`, `reason` → `overrideReason`, `diagnosis` → `diagnosis`, `disposition` → `dischargeAction`.
-
-Don't send `workerUserId` from either screen. The backend reads the user from the session.
-
-### 5. Known mismatches to fix while wiring
-
-- **Agreement rate:** the mock report has `agreement_rate: 0.88`, but the Ward overview displays `${agreement_rate}%`. The backend sends `88`.
-- **Demo password:** the "Quick Demo Sign-In" buttons on the login screen send the password `demo123`, while the old seed used `password123` (`SEED_PASSWORD`). Seed the demo staff with `demo123`, or change the buttons.
-- **Demo staff:** the quick sign-in buttons use `HW-DOC-001` (Dr. Amina Bello) and `HW-NUR-002` (Grace Okafor) from `STAFF_DIRECTORY`. These accounts must exist in the seeded database.
-- **Severity casing:** the UI sends `Moderate`; the backend should store `moderate`, as described in [Enums](#enums).
-
-### Not needed
-
-The old backend also had `GET /api/workers` and `POST /api/workers` (list and create staff). No screen uses them, so they're out of scope until there's a staff admin UI.
-
----
-
-## Reference: the original implementation
-
-Commit `1e8c5f6` deleted the Next.js backend. The last commit that still has it is `bb50fe2`:
-
-```bash
-# A route handler, e.g. triage
-git show bb50fe2:src/app/api/triage/route.ts
-
-# Other routes: auth/login, auth/logout, auth/session, patients, patients/[id],
-# patients/[id]/photo, symptoms, records/queue, records/[id]/review, reports/ward
-
-# Database schema, validation, sessions, inference, rule engine, uploads
-git show bb50fe2:prisma/schema.prisma
-git show bb50fe2:src/lib/validation.ts
-git show bb50fe2:src/lib/session.ts
-git show bb50fe2:src/lib/inference.ts
-git show bb50fe2:src/lib/triage-engine.ts
-git show bb50fe2:src/lib/uploads.ts
-
-# Demo seed data (20 patients, 33 symptoms, ~47 visits)
-git show bb50fe2:prisma/seed.ts
-git show bb50fe2:data/symptoms.json
-```
-
-`package.json` still has the `prisma:*`, `seed:demo` and `db:setup` scripts, but the files they point at (`prisma/schema.prisma`, `prisma/seed.ts`) were deleted. Restore those files or remove the scripts.

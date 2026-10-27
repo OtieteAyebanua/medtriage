@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import './style.css';
-import { DEMO_PASSWORD, HealthcareWorker, loginWithCredentials, STAFF_DIRECTORY } from './authService';
+import { HealthcareWorker, loginWithCredentials } from './authService';
 
 export type { HealthcareWorker } from './authService';
 
@@ -46,10 +46,13 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
     await performLogin(employeeId, password);
   };
 
-  const handleQuickDemo = (worker: (typeof STAFF_DIRECTORY)[number]) => {
-    setEmployeeId(worker.employeeId);
-    setPassword(DEMO_PASSWORD);
-    performLogin(worker.employeeId, DEMO_PASSWORD);
+  // Demo accounts that exist in the facility database
+  const handleQuickDemo = (role: 'doctor' | 'nurse') => {
+    const id = role === 'doctor' ? 'HW-DOC-001' : 'HW-NUR-002';
+    const pass = 'demo123';
+    setEmployeeId(id);
+    setPassword(pass);
+    performLogin(id, pass);
   };
 
   return (
@@ -92,7 +95,7 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               <button
                 type="button"
-                onClick={() => handleQuickDemo(STAFF_DIRECTORY[0])}
+                onClick={() => handleQuickDemo('doctor')}
                 disabled={isLoading}
                 style={{
                   background: '#ffffff',
@@ -112,7 +115,7 @@ export const Auth: React.FC<AuthProps> = ({ onLoginSuccess }) => {
               </button>
               <button
                 type="button"
-                onClick={() => handleQuickDemo(STAFF_DIRECTORY[1])}
+                onClick={() => handleQuickDemo('nurse')}
                 disabled={isLoading}
                 style={{
                   background: '#ffffff',

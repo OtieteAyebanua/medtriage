@@ -2,44 +2,26 @@
 
 Offline, LAN-hosted clinical decision support for primary healthcare facilities: nurses record a structured triage assessment, an inference engine suggests an urgency level (1–5) with reasoning and differential diagnoses, and a doctor confirms or overrides it from a review queue.
 
-Stack: Next.js 15 (App Router) · React 19 · Prisma 6 · SQLite (PostgreSQL-ready) · TypeScript.
+Stack: Vite · React 19 · TypeScript frontend, ASP.NET Core API with SQLite (Entity Framework Core), and a Python diagnosis-model sidecar.
 
-## Quick start (demo)
+## Quick start
 
 ```bash
 npm install
-cp .env.example .env          # defaults are fine for a demo
-npm run db:setup              # creates the SQLite DB and loads the full demo dataset
-npm run dev                   # http://localhost:3000
+npm run program               # Vite frontend, .NET API and diagnosis model together
 ```
 
-To start the complete local development stack (Vite frontend, .NET API, and diagnosis model service) together, run `npm run program` from the project root. Open http://localhost:3000; press Ctrl+C to stop all three processes.
+Open http://localhost:3000 (admin console at http://localhost:3000/admin). Press Ctrl+C to stop all three processes.
 
-### Demo logins (password for all: `password123`)
-
-| Employee ID | Name | Role |
-|---|---|---|
-| `HW-DOC-001` | Dr. Amina Bello | Doctor — sees the Review queue |
-| `HW-DOC-006` | Dr. Chukwuemeka Obi | Doctor |
-| `HW-NUR-002` | Grace Okafor | Nurse |
-| `HW-NUR-003` | Ibrahim Danladi | Nurse |
-| `HW-NUR-007` | Halima Sadiq | Nurse |
-| `HW-LAB-004` | Samuel Adeyemi | Lab technician |
-| `HW-PHA-008` | Tunde Bakare | Pharmacist |
-| `HW-ADM-005` | Khadija Umar | Administrator |
-
-You can sign in with the employee ID or the email (`amina.bello@hospital.lan`). Change the shared password with `SEED_PASSWORD` in `.env` before seeding.
-
-The demo dataset contains 20 patients (14 with placeholder photos), a 33-symptom catalogue, and ~47 visits over the last 30 days including doctor reviews, overrides and a live review queue. `npm run seed:demo` wipes patients/visits/photos and rebuilds it; `npm run prisma:seed` only refreshes staff and symptoms and leaves existing clinical data alone.
+`npm run program` needs the .NET SDK and the diagnosis model's Python environment; it tells you how to create that environment if it is missing. Data lives in `server/medtriage.db`; see [`server/README.md`](server/README.md) for where it goes on an installed server.
 
 ## Scripts
 
 | Script | What it does |
 |---|---|
-| `npm run dev` / `build` / `start` | Next.js dev server / production build / production server |
-| `npm run db:setup` | `prisma db push` + full demo seed |
-| `npm run seed:demo` | Reset clinical data and rebuild the demo dataset |
-| `npm run prisma:seed` | Upsert staff + symptom catalogue only |
+| `npm run program` | Start the full development stack (ports 3000, 4000, 8002) |
+| `npm run dev` | Vite dev server only; `/api` is proxied to the .NET API |
+| `npm run build` / `preview` | Type-check and build the frontend / serve the build |
 | `npm run lint` | oxlint |
 
 ## Local model service
@@ -48,7 +30,7 @@ The built-in rule engine sets the triage level. Possible conditions come from th
 
 ## API overview
 
-All routes except `/api/auth/login` require the session cookie (1-day expiry). Doctor-only routes return 403 for other roles.
+All routes except `/api/auth/login` require the session cookie (1-day expiry). Doctor-only routes return 403 for other roles. Full details are in [`API_README.md`](API_README.md).
 
 | Route | Purpose |
 |---|---|
@@ -61,14 +43,18 @@ All routes except `/api/auth/login` require the session cookie (1-day expiry). D
 | `GET /api/records/queue` | Assessments awaiting doctor review |
 | `PUT /api/records/:id/review` | Doctor sign-off (accept/override, diagnosis, disposition) — doctors only |
 | `GET /api/reports/ward?days=` | Acuity distribution, review/override statistics, recent activity |
+| `POST /api/admin/auth/login` · `logout` · `GET session` | Admin console sign-in (separate session) |
+| `GET/POST /api/admin/practitioners` · `PUT :id` · `PUT :id/status` | Manage staff accounts |
 
 ## Project layout
 
 ```
-prisma/            schema, demo seed (seed.ts), placeholder photo generator
-src/app/api/       route handlers
-src/lib/           auth, inference seam, validation, uploads, rule engine, session
 src/auth/          login screen
 src/Homescreen/    the app: triage wizard, patients, history, review queue, ward overview
-uploads/           patient photos (git-ignored)
+src/admin/         admin console: practitioner management
+src/api.ts         API client
+server/            ASP.NET Core API, SQLite database, diagnosis model sidecar
+client/            desktop client that finds the server on the LAN
+packaging/         installers for macOS, Windows and Linux (publish.sh)
+scripts/           development helpers (program.sh)
 ```

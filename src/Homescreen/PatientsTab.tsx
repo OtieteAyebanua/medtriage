@@ -1,5 +1,3 @@
-'use client';
-
 import React, { useState } from 'react';
 import styles from './Homescreen.module.css';
 import { ageFrom, formatDate, fullName, hasAllergies, lastVisitSummary, matchesPatient } from './clinical';

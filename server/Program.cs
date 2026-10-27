@@ -114,12 +114,6 @@ if (showBanner && await ServerConsole.IsAlreadyRunningAsync(localUrl))
 using (var scope = app.Services.CreateScope())
 {
     scope.ServiceProvider.GetRequiredService<MedTriageDbContext>().Database.Migrate();
-
-    // Demo staff, symptoms, patients and visits for an empty database (turn off with DemoData:Enabled=false)
-    if (app.Configuration.GetValue("DemoData:Enabled", true))
-    {
-        await DemoSeeder.SeedIfEmptyAsync(scope.ServiceProvider, app.Configuration["DemoData:Password"] ?? "demo123");
-    }
 }
 
 app.UseExceptionHandler();
