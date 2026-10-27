@@ -1358,6 +1358,52 @@
   transition: width 0.4s ease;
 }
 
+.levelProbList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.levelProbRow {
+  display: grid;
+  grid-template-columns: minmax(8.5rem, 11rem) 1fr 2.75rem;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.86rem;
+  color: var(--text-3);
+}
+
+.levelProbRowActive {
+  color: var(--lv);
+  font-weight: 800;
+}
+
+.levelProbName {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.levelProbBar {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+
+.levelProbFill {
+  display: block;
+  height: 100%;
+  background: var(--lv-solid);
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+.levelProbValue {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 .diffRationale {
   font-size: 0.8rem;
   color: var(--text-3);

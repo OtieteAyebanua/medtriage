@@ -12,6 +12,7 @@ import {
   hasAllergies,
   isFemale,
   lastVisitSummary,
+  LEVEL_LIST,
   matchesPatient,
   MOBILITY_OPTIONS,
   optionLabel,
@@ -47,7 +48,7 @@ const yesNoValue = (v: boolean | null) => (v === null ? null : v ? 'yes' : 'no')
 const yesNoLabel = (v: boolean | null) => (v === null ? 'Not asked' : v ? 'Yes' : 'No');
 
 /** Which engine produced a result, shown under it */
-type EngineInfo = Pick<RunTriageResult, 'engine' | 'model' | 'safety_raised_from'>;
+type EngineInfo = Pick<RunTriageResult, 'model' | 'level_probabilities'>;
 
 export interface PatientRequest {
   patientId: number;
@@ -210,7 +211,7 @@ export default function TriageWizard({
       });
       setResult(data.triage);
       setRecordId(data.record_id);
-      setEngineInfo({ engine: data.engine, model: data.model, safety_raised_from: data.safety_raised_from });
+      setEngineInfo({ model: data.model, level_probabilities: data.level_probabilities });
       setStep(5);
       onTriageSaved();
     } catch (err) {
@@ -1041,7 +1042,6 @@ function ResultView({
   const level = clampLevel(result.urgency_level);
   const meta = TRIAGE_LEVELS[level];
   const diffs = result.differential_diagnoses ?? [];
-  const tests = result.recommended_tests ?? [];
 
   return (
     <div>
@@ -1056,16 +1056,32 @@ function ResultView({
         </div>
       </div>
 
-      {engine?.safety_raised_from != null && (
-        <Notice kind="warning">
-          The AI model suggested Level {engine.safety_raised_from}. The safety rules found warning signs and raised it to Level {level}.
-        </Notice>
-      )}
-
       <div className={styles.resultSection}>
         <SectionLabel right={engine && <span className={styles.tableMuted}>{engineLabel(engine)}</span>}>Why this level</SectionLabel>
         <p className={styles.reasoningText}>{result.reasoning}</p>
       </div>
+
+      {engine?.level_probabilities && (
+        <div className={styles.resultSection}>
+          <SectionLabel>How likely each level is</SectionLabel>
+          <div className={styles.levelProbList}>
+            {LEVEL_LIST.map((m) => {
+              const p = engine.level_probabilities[String(m.level)] ?? 0;
+              return (
+                <div key={m.level} className={`${styles.levelProbRow} ${levelClass(m.level)} ${m.level === level ? styles.levelProbRowActive : ''}`}>
+                  <span className={styles.levelProbName}>
+                    Level {m.level} · {m.label}
+                  </span>
+                  <span className={styles.levelProbBar} aria-hidden="true">
+                    <span className={styles.levelProbFill} style={{ width: `${Math.round(p * 100)}%` }} />
+                  </span>
+                  <span className={styles.levelProbValue}>{percent(p)}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {diffs.length > 0 && (
         <div className={styles.resultSection}>
@@ -1086,19 +1102,6 @@ function ResultView({
                 </div>
               );
             })}
-          </div>
-        </div>
-      )}
-
-      {tests.length > 0 && (
-        <div className={styles.resultSection}>
-          <SectionLabel>Suggested tests</SectionLabel>
-          <div className={styles.chipRow}>
-            {tests.map((t, idx) => (
-              <span key={idx} className={styles.testChip}>
-                <Icon name="flask" size={13} /> {t}
-              </span>
-            ))}
           </div>
         </div>
       )}
@@ -1129,7 +1132,5 @@ function ResultView({
 }
 
 function engineLabel(engine: EngineInfo): string {
-  if (engine.engine === 'rules') return 'Assessed by the built-in rule engine';
-  const model = engine.model ? `AI model (${engine.model})` : 'AI model';
-  return `Assessed by ${model} · checked by safety rules`;
+  return `Assessed by AI model (${engine.model})`;
 }

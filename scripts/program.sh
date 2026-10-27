@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SERVER_DIR="$ROOT_DIR/server"
 DIAGNOSIS_PYTHON="$SERVER_DIR/.venv-diagnosis/bin/python"
 DIAGNOSIS_ARTIFACT="$SERVER_DIR/Models/newmodel.joblib"
+TRIAGE_ARTIFACT="$SERVER_DIR/Models/triage_model.joblib"
 
 if ! command -v npm >/dev/null 2>&1; then
   echo "npm is required. Install Node.js, then run npm install from the project root." >&2
@@ -26,6 +27,11 @@ if [[ ! -x "$DIAGNOSIS_PYTHON" ]]; then
 fi
 if [[ ! -f "$DIAGNOSIS_ARTIFACT" ]]; then
   echo "Diagnosis model not found at $DIAGNOSIS_ARTIFACT." >&2
+  exit 1
+fi
+if [[ ! -f "$TRIAGE_ARTIFACT" ]]; then
+  echo "Triage model not found at $TRIAGE_ARTIFACT." >&2
+  echo "Build it with: cd server && .venv-diagnosis/bin/python train_triage_model.py" >&2
   exit 1
 fi
 
@@ -75,13 +81,13 @@ NAMES+=(".NET API")
   exec "$DIAGNOSIS_PYTHON" diagnosis_service.py
 ) &
 PIDS+=("$!")
-NAMES+=("Diagnosis model service")
+NAMES+=("Model service")
 
 echo "Starting MedTriage development stack:"
 echo "  Frontend:       http://localhost:3000"
 echo "  Admin console:  http://localhost:3000/admin"
 echo "  .NET API:       http://localhost:4000"
-echo "  Diagnosis:      http://localhost:8002"
+echo "  Models:         http://localhost:8002 (/triage, /diagnose)"
 echo "Press Ctrl+C to stop all services."
 
 while true; do

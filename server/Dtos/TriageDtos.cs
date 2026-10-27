@@ -33,11 +33,15 @@ public record TriageScreeningRequest(
 /// <summary>One possible condition. Probability is 0–1.</summary>
 public record DifferentialDiagnosisDto(string Condition, double Probability, string Rationale);
 
-/// <param name="Engine">Always "rules": the rule engine sets the triage level.</param>
-/// <param name="Model">Always null; kept for API compatibility.</param>
-/// <param name="SafetyRaisedFrom">Always null; kept for API compatibility.</param>
+/// <param name="Model">Which model set the level.</param>
+/// <param name="LevelProbabilities">The model's probability for each level, keyed 1–5.</param>
 [SnakeCaseJson]
-public record TriageResponse(bool Success, int RecordId, string Engine, string? Model, int? SafetyRaisedFrom, TriageResultDto Triage);
+public record TriageResponse(
+    bool Success,
+    int RecordId,
+    string Model,
+    Dictionary<int, double> LevelProbabilities,
+    TriageResultDto Triage);
 
 /// <summary>TriageResult in src/Homescreen/types.ts.</summary>
 [SnakeCaseJson]
@@ -47,5 +51,4 @@ public record TriageResultDto(
     string TriageLevel,
     double? Confidence,
     string Reasoning,
-    List<string> RecommendedTests,
     List<DifferentialDiagnosisDto> DifferentialDiagnoses);

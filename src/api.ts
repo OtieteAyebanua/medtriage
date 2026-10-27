@@ -173,13 +173,11 @@ export interface RunTriageInput {
 
 export interface RunTriageResult {
   record_id: number;
-  /** The rule engine sets the triage level */
-  engine: 'rules';
-  /** Always null; kept for API compatibility */
-  model: string | null;
-  /** Always null; kept for API compatibility */
-  safety_raised_from: number | null;
-  triage: TriageResult & { recommended_tests: string[]; differential_diagnoses: DifferentialDiagnosis[] };
+  /** Which model set the level */
+  model: string;
+  /** The model's probability for each level, keyed "1"–"5" */
+  level_probabilities: Record<string, number>;
+  triage: TriageResult & { differential_diagnoses: DifferentialDiagnosis[] };
 }
 
 export function runTriage(input: RunTriageInput): Promise<RunTriageResult> {

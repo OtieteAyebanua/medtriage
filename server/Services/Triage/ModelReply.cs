@@ -13,4 +13,7 @@ public static class ModelReply
     };
 
     public record Diagnosis(string? Condition, double? Probability, string? Rationale);
+
+    /// <summary>Probabilities are keyed "1"–"5".</summary>
+    public record Triage(int? Level, Dictionary<string, double>? Probabilities, List<string>? Findings, string? Note);
 }

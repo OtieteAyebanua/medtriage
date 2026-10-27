@@ -26,7 +26,12 @@ Open http://localhost:3000 (admin console at http://localhost:3000/admin). Press
 
 ## Local model service
 
-The built-in rule engine sets the triage level. Possible conditions come from the diagnosis model, a Python sidecar at `http://127.0.0.1:8002` that loads `server/Models/newmodel.joblib`. It binds to loopback, and the API rejects non-loopback model URLs. There is no remote inference endpoint or API key configuration. If the sidecar is unavailable, the rule engine supplies the possible conditions. See [`server/README.md`](server/README.md) for local setup.
+Two Random Forest models run in a Python sidecar at `http://127.0.0.1:8002`:
+
+- **Triage model** (`server/Models/triage_model.joblib`) sets the triage level and returns a probability for each level. It is trained on synthetic patients labelled with the South African Triage Scale by `server/train_triage_model.py`.
+- **Diagnosis model** (`server/Models/newmodel.joblib`) suggests possible conditions.
+
+The sidecar binds to loopback, and the API rejects non-loopback model URLs. There is no remote inference endpoint or API key configuration. The app depends on the sidecar: if it is down, triage answers "The triage model isn't running" and nothing is saved. See [`server/README.md`](server/README.md) for local setup.
 
 ## API overview
 

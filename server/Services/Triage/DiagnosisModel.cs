@@ -5,32 +5,13 @@ using Microsoft.Extensions.Options;
 
 namespace MedTriage.Server.Services.Triage;
 
-/// <summary>
-/// What the diagnosis sidecar sees: the training-CSV inputs, unencoded. diagnosis_model.json says how the
-/// sidecar codes sex, avpu and mobility. Sent as snake_case JSON; null means not measured or not asked.
-/// </summary>
-public record DiagnosisRequest(
-    double? AgeYears,
-    string? Sex,
-    bool? Pregnant,
-    bool? RainySeason,
-    int? DaysFebrile,
-    double? TempC,
-    int? HeartRate,
-    int? RespRate,
-    int? SystolicBp,
-    double? Spo2,
-    string? Avpu,
-    string? Mobility,
-    Dictionary<string, bool> SymptomFlags);
-
 /// <summary>Calls the diagnosis-model sidecar (Models/newmodel.joblib) on a loopback address only.</summary>
 public class DiagnosisModel(HttpClient http, IOptions<InferenceOptions> options, ILogger<DiagnosisModel> logger)
 {
     private record Reply(List<ModelReply.Diagnosis?>? Diagnoses);
 
     /// <summary>The model's most likely conditions, or an empty list when it is unavailable or had too little to go on.</summary>
-    public async Task<List<DifferentialDiagnosisDto>> DiagnoseAsync(DiagnosisRequest request, CancellationToken ct)
+    public async Task<List<DifferentialDiagnosisDto>> DiagnoseAsync(ModelInputs request, CancellationToken ct)
     {
         var config = options.Value;
         try
@@ -45,7 +26,7 @@ public class DiagnosisModel(HttpClient http, IOptions<InferenceOptions> options,
 
             using var message = new HttpRequestMessage(HttpMethod.Post, endpoint)
             {
-                // Content-Length rather than chunked; see RandomForestTriageModel
+                // Content-Length rather than chunked: the sidecar's plain HTTP server reads by length
                 Content = new StringContent(JsonSerializer.Serialize(request, ModelReply.Wire), Encoding.UTF8, "application/json"),
             };
 
@@ -61,7 +42,7 @@ public class DiagnosisModel(HttpClient http, IOptions<InferenceOptions> options,
         }
         catch (Exception ex) when (!ct.IsCancellationRequested)
         {
-            logger.LogWarning("Diagnosis model failed, keeping the rule engine's possible conditions: {Error}", ex.Message);
+            logger.LogWarning("Diagnosis model failed, no possible conditions for this assessment: {Error}", ex.Message);
             return [];
         }
     }

@@ -11,7 +11,7 @@ public class TriageService(
     IDocumentRepository<Patient> patients,
     IDocumentRepository<Symptom> symptoms,
     IDocumentRepository<PatientRecord> records,
-    IInferenceService inference,
+    TriageModel triageModel,
     DiagnosisModel diagnosis) : ITriageService
 {
     public async Task<TriageResponse> RunAsync(RunTriageRequest request, int recordedByUserId, CancellationToken ct = default)
@@ -70,8 +70,8 @@ public class TriageService(
             throw ApiException.BadRequest($"Unknown symptom IDs: {string.Join(", ", unknown)}", "symptoms");
         }
 
-        // ---- 1. Diagnosis model (runs alongside triage; never fails the request) ----
-        var diagnosisTask = diagnosis.DiagnoseAsync(new DiagnosisRequest(
+        // ---- 1. Both models get the same inputs; the diagnosis model runs alongside and never fails the request ----
+        var modelInputs = new ModelInputs(
             ClinicalValues.AgeInYears(patient.DateOfBirth),
             patient.Gender,
             sc?.Pregnant,
@@ -84,27 +84,15 @@ public class TriageService(
             oxygenLevel,
             avpu,
             mobility,
-            symptomFlags), ct);
+            symptomFlags);
+        var diagnosisTask = diagnosis.DiagnoseAsync(modelInputs, ct);
 
-        // ---- 2. Local model inference, with the rule engine as safety fallback ----
-        var result = await inference.AssessAsync(new InferenceRequest(
-            new InferencePatient(
-                ClinicalValues.AgeFrom(patient.DateOfBirth),
-                patient.Gender,
-                patient.BloodType,
-                patient.ChronicConditions,
-                patient.Allergies),
-            visitType,
-            chiefComplaint,
-            symptomInputs
-                .Select(s => new InferenceSymptom(
-                    s.SymptomId, catalogue[s.SymptomId].SymptomName, catalogue[s.SymptomId].Category, s.Severity, s.Duration, s.Notes))
-                .ToList(),
-            new InferenceVitals(temperature, bloodPressure, heartRate, oxygenLevel, respiratoryRate)), ct);
-
-        // The diagnosis model's conditions replace the rule engine's pattern-matched ones when it has any
+        // ---- 2. Triage model sets the level ----
+        var triage = await triageModel.PredictAsync(modelInputs, ct)
+            ?? throw ApiException.ServiceUnavailable("The triage model isn't running. Start the model service and try again.");
+        var triageLevel = ClinicalValues.TriageLevelFromScore(triage.Level);
+        var confidence = Math.Round(triage.Probabilities[triage.Level], 2);
         var conditions = await diagnosisTask;
-        if (conditions.Count > 0) result = result with { DifferentialDiagnosis = conditions };
 
         // ---- 3. Save: retire the previous current assessment, add the new record and its symptoms ----
         var previous = await records.Query(tracking: true)
@@ -128,14 +116,13 @@ public class TriageService(
             DaysFebrile = daysFebrile,
             Avpu = avpu,
             Mobility = mobility,
-            AiUrgencyScore = result.UrgencyScore,
-            AiTriageLevel = result.TriageLevel,
-            AiConfidence = result.Confidence,
-            AiReasoning = result.Reasoning,
-            AiSuggestedTests = JsonColumn.Write(result.SuggestedTests),
-            AiDifferentialDiagnosis = JsonColumn.Write(result.DifferentialDiagnosis),
+            AiUrgencyScore = triage.Level,
+            AiTriageLevel = triageLevel,
+            AiConfidence = confidence,
+            AiReasoning = triage.Reasoning,
+            AiDifferentialDiagnosis = JsonColumn.Write(conditions),
             OverrideStatus = "pending",
-            FinalTriageLevel = result.TriageLevel,
+            FinalTriageLevel = triageLevel,
             Status = "triaged",
             IsCurrent = true,
             VisitDate = DateTime.UtcNow,
@@ -152,17 +139,15 @@ public class TriageService(
         return new TriageResponse(
             Success: true,
             record.RecordId,
-            result.Engine,
-            result.Model,
-            result.SafetyRaisedFrom,
+            TriageModel.Name,
+            triage.Probabilities,
             new TriageResultDto(
-                result.UrgencyScore,
-                result.TriageLevel.Replace('_', ' ').ToUpperInvariant(),
-                result.TriageLevel,
-                result.Confidence,
-                result.Reasoning,
-                result.SuggestedTests,
-                result.DifferentialDiagnosis));
+                triage.Level,
+                triageLevel.Replace('_', ' ').ToUpperInvariant(),
+                triageLevel,
+                confidence,
+                triage.Reasoning,
+                conditions));
     }
 
     private static int? ToInt(double? value) => value is null ? null : (int)Math.Round(value.Value);

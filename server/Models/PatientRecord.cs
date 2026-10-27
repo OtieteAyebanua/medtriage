@@ -79,7 +79,7 @@ public class PatientRecord
     /// <summary>immediate, emergent, urgent, less_urgent or non_urgent.</summary>
     public string AiTriageLevel { get; set; } = null!;
 
-    /// <summary>0–1; null for the rule engine.</summary>
+    /// <summary>0–1: the triage model's probability for the level it chose.</summary>
     public double? AiConfidence { get; set; }
 
     public string AiReasoning { get; set; } = null!;

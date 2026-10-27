@@ -9,17 +9,18 @@ cd server
 dotnet run --launch-profile http     # http://localhost:4000
 ```
 
-## Diagnosis model service
+## Model service
 
-The diagnosis model (`Models/newmodel.joblib`) runs in its own Python 3.11+ environment, separate from the .NET API:
+The triage model (`Models/triage_model.joblib`) and the diagnosis model (`Models/newmodel.joblib`) run in their own Python 3.11+ environment, separate from the .NET API:
 
 ```bash
 python3.11 -m venv .venv-diagnosis
 .venv-diagnosis/bin/pip install -r requirements-diagnosis.txt
-.venv-diagnosis/bin/python diagnosis_service.py      # http://127.0.0.1:8002/diagnose
+.venv-diagnosis/bin/python train_triage_model.py     # builds Models/triage_model.joblib (about 10 s)
+.venv-diagnosis/bin/python diagnosis_service.py      # http://127.0.0.1:8002/triage and /diagnose
 ```
 
-`.venv-diagnosis/` is local and git-ignored. Loading the model takes about a minute. `diagnosis_model.json` holds the class names and input coding the model file doesn't store; see "Diagnosis model" in [`../API_README.md`](../API_README.md). If the service is stopped, triage still works and the rule engine supplies the possible conditions.
+`.venv-diagnosis/` is local and git-ignored. Loading the models takes about a minute. The triage model sets the triage level; see "Triage model" in [`../API_README.md`](../API_README.md) for how it is trained. `diagnosis_model.json` holds the class names and input coding the diagnosis model file doesn't store. If the service is stopped, `POST /api/triage` answers 503 and nothing is saved.
 
 The database file is `medtriage.db` in this folder (git-ignored). To create it or apply new migrations:
 
@@ -72,7 +73,7 @@ Controllers   →   Services   →   DocumentRepository   →   SQLite
 | Auth | `AuthController` | `AuthService` | login, session, logout |
 | Patients | `PatientsController` | `PatientService` + `PhotoStorage` | registry, register, history, photo |
 | Symptoms | `SymptomsController` | `SymptomService` | catalogue |
-| Triage | `TriageController` | `TriageService` + `InferenceService` + `RuleTriageEngine` | run triage |
+| Triage | `TriageController` | `TriageService` + `TriageModel` + `DiagnosisModel` | run triage |
 | Records | `RecordsController` | `RecordService` | review queue, doctor review |
 | Reports | `ReportsController` | `ReportService` | ward overview |
 
@@ -120,6 +121,7 @@ Any setting can also be set with an environment variable, using `__` between the
 | `Urls` | `http://0.0.0.0:4000` (installed) | Address and port the server listens on |
 | `Server:ShowBanner` | `true` (installed) | Show the address banner in the console window |
 | `Inference:DiagnosisModelUrl` | `http://127.0.0.1:8002/diagnose` | Loopback-only diagnosis model sidecar endpoint |
+| `Inference:TriageModelUrl` | `http://127.0.0.1:8002/triage` | Loopback-only triage model sidecar endpoint |
 | `Inference:TimeoutMs` | `5000` | Diagnosis model request timeout |
 
 ## Adding a table or column

@@ -14,4 +14,5 @@ public class ApiException(int statusCode, string message, string? field = null, 
     public static ApiException NotFound(string message) => new(StatusCodes.Status404NotFound, message);
     public static ApiException PayloadTooLarge(string message) => new(StatusCodes.Status413PayloadTooLarge, message);
     public static ApiException UnsupportedMediaType(string message) => new(StatusCodes.Status415UnsupportedMediaType, message);
+    public static ApiException ServiceUnavailable(string message) => new(StatusCodes.Status503ServiceUnavailable, message);
 }

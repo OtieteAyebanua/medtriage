@@ -410,13 +410,13 @@ Validation:
 | `vitals.oxygenLevel` | Optional, 50–100 % |
 | `vitals.respiratoryRate` | Optional, 4–80 /min (store as an integer) |
 | `symptoms[]` | Optional array. `symptomId` must exist in the catalogue (`400 "Unknown symptom IDs: …"`). `severity` must be mild, moderate or severe in any case (default `moderate`). `duration` max 100 (default `"unknown"`). `notes` max 1000 |
-| `screening` | Optional; every field may be null (not asked). `daysFebrile` 0–365, `avpu` and `mobility` from the enums, `symptomFlags` keys from the 33 checklist names (`400 "Unknown symptom flags: …"`). Saved on the record and sent to the [diagnosis model](#diagnosis-model) |
+| `screening` | Optional; every field may be null (not asked). `daysFebrile` 0–365, `avpu` and `mobility` from the enums, `symptomFlags` keys from the 33 checklist names (`400 "Unknown symptom flags: …"`). Saved on the record and sent to both [models](#local-inference) |
 
 All vitals are optional. Treat a blank value or `null` as "not measured". Accept numbers or numeric strings.
 
 Processing:
 1. Validate the input, load the patient, and check the symptom IDs.
-2. Call the inference service (see [Inference service](#inference-service)). If it fails or isn't configured, fall back to the rule engine.
+2. Send the inputs to the [triage model](#triage-model) and the [diagnosis model](#diagnosis-model). If the triage model is unavailable, answer `503 "The triage model isn't running. Start the model service and try again."` and save nothing.
 3. In **one transaction**: set `is_current = false` on the patient's previous current record, create the new record (`recorded_by` = session user, `override_status: "pending"`, `status: "triaged"`, `final_triage_level` = AI level, `is_current: true`), and insert the `record_symptoms` rows.
 
 Response `200`:
@@ -425,16 +425,14 @@ Response `200`:
 {
   "success": true,
   "record_id": 48,
-  "engine": "rules",
-  "model": null,
-  "safety_raised_from": null,
+  "model": "random-forest",
+  "level_probabilities": { "1": 0.05, "2": 0.19, "3": 0.68, "4": 0.08, "5": 0.01 },
   "triage": {
     "urgency_level": 3,
     "urgency_category": "URGENT",
     "triage_level": "urgent",
-    "confidence": null,
-    "reasoning": "Febrile patient with prominent systemic symptoms; stable vitals but high pyrexia warrants prompt diagnostic workup.",
-    "recommended_tests": ["Malaria Rapid Diagnostic Test (mRDT)", "Full Blood Count (FBC)"],
+    "confidence": 0.68,
+    "reasoning": "Triage model: Level 3 Urgent 68%, Level 2 Emergent 19%, Level 4 Less urgent 8%. Findings: temperature 39.2 °C.",
     "differential_diagnoses": [
       { "condition": "Acute Uncomplicated Malaria", "probability": 0.72, "rationale": "Classic triad of fever, rigors and headache." },
       { "condition": "Typhoid Fever", "probability": 0.2, "rationale": "Consider if fever persists." }
@@ -445,8 +443,8 @@ Response `200`:
 
 - `urgency_level` is 1–5. The UI's result screen is driven by this number.
 - `probability` is 0–1, sorted from highest to lowest.
-- `engine` is always `"rules"`: the built-in rule engine sets the triage level. `model` and `safety_raised_from` are always `null` and kept for compatibility.
-- `differential_diagnoses` come from the [diagnosis model](#diagnosis-model) when it is running, otherwise from the rule engine.
+- The [triage model](#triage-model) sets the level. `level_probabilities` (keyed `"1"`–`"5"`) holds its probability for each level, and `confidence` is the chosen level's probability.
+- `differential_diagnoses` come from the [diagnosis model](#diagnosis-model); the list is empty when it is down or had too few inputs.
 - `urgency_category` isn't displayed, but `TriageResult` in `types.ts` requires it.
 
 #### 12. `GET /api/records/queue`
@@ -708,15 +706,29 @@ Response `200`: `{ "practitioner": { … } }`. `404` if no such worker.
 
 ## Local inference
 
-The built-in rule engine sets the triage level on every assessment. Possible conditions come from the local diagnosis model below when it is running. Its endpoint is restricted to loopback addresses; the app has no remote inference provider or API key configuration.
+The triage model below sets the triage level, and the diagnosis model suggests possible conditions. Both run in one local sidecar (`server/diagnosis_service.py`); when it is down, `POST /api/triage` answers `503` and nothing is saved. Model endpoints are restricted to loopback addresses; the app has no remote inference provider or API key configuration.
 
 Start the whole local stack with `npm run program`.
 
+### Triage model
+
+`POST /api/triage` sends the same inputs as the diagnosis model (below) to `http://127.0.0.1:8002/triage`. The sidecar loads `server/Models/triage_model.joblib`, a Random Forest that returns a probability for each level; the most likely level (ties go to the more urgent one) becomes the assessment's level. There is no rule-based override or fallback.
+
+Train or retrain it with `server/train_triage_model.py` (about 10 seconds). There is no real labelled data yet, so it trains on 30,000 synthetic adult patients labelled with the South African Triage Scale: a TEWS score (mobility, respiratory rate, heart rate, systolic BP, temperature, AVPU) plus emergency and very-urgent signs, with SpO2 < 92% very urgent and < 85% emergency. About 8% of labels are moved one level and some inputs are left out, to imitate clinician disagreement and unmeasured vitals. The script prints accuracy, under-triage and a confusion matrix on 6,000 held-out patients. Synthetic data is not clinical evidence; retrain on reviewed visits once there are enough.
+
+Reply:
+
+```json
+{ "level": 3, "triage_level": "urgent",
+  "probabilities": { "1": 0.05, "2": 0.19, "3": 0.68, "4": 0.08, "5": 0.01 },
+  "findings": ["temperature 39.2 °C"], "inputs_used": 45, "inputs_total": 45, "note": null }
+```
+
 ### Diagnosis model
 
-Alongside triage, `POST /api/triage` sends the diagnosis inputs (the `screening` fields plus age, sex and vitals) to a local sidecar at `http://127.0.0.1:8002/diagnose`. It runs `server/diagnosis_service.py`, which loads `server/Models/newmodel.joblib` in its own Python 3.11+ environment (`server/.venv-diagnosis`, from `requirements-diagnosis.txt`). Loading takes about a minute; until then, and whenever it fails, the rule engine's possible conditions are kept.
+Alongside triage, `POST /api/triage` sends the diagnosis inputs (the `screening` fields plus age, sex and vitals) to a local sidecar at `http://127.0.0.1:8002/diagnose`. It runs `server/diagnosis_service.py`, which loads `server/Models/newmodel.joblib` in its own Python 3.11+ environment (`server/.venv-diagnosis`, from `requirements-diagnosis.txt`). Loading takes about a minute. If it fails, the assessment is still saved, with no possible conditions.
 
-When it returns conditions, they replace the rule engine's `differential_diagnosis`; the triage level is unaffected. It returns nothing when fewer than `min_inputs` of its 45 inputs are present.
+Its conditions become `differential_diagnoses`; the triage level is unaffected. It returns nothing when fewer than `min_inputs` of its 45 inputs are present.
 
 `server/diagnosis_model.json` holds what the model file does not: the name of each class (0–14) and how `sex`, `avpu` and `mobility` were coded in training. Until a label is filled in, the class shows as "Diagnosis class N (unlabelled)". Set `codes_confirmed` to `true` once the codes are checked against the training data.
 
@@ -742,4 +754,5 @@ These live in `server/appsettings.json`. Any of them can be overridden with an e
 | `ConnectionStrings:MedTriage` | `Data Source=medtriage.db` | SQLite database file |
 | `Uploads:Directory` | `uploads` | Where patient photos are stored |
 | `Inference:DiagnosisModelUrl` | `http://127.0.0.1:8002/diagnose` | Loopback-only diagnosis-model sidecar endpoint |
-| `Inference:TimeoutMs` | `5000` | Timeout for the diagnosis model service |
+| `Inference:TriageModelUrl` | `http://127.0.0.1:8002/triage` | Loopback-only triage-model sidecar endpoint |
+| `Inference:TimeoutMs` | `5000` | Timeout for each model request |

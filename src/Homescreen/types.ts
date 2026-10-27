@@ -129,7 +129,6 @@ export interface TriageResult {
   triage_level?: string;
   confidence?: number | null;
   reasoning: string;
-  recommended_tests?: string[];
   differential_diagnoses?: DifferentialDiagnosis[];
 }
 

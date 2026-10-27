@@ -89,9 +89,8 @@ builder.Services.Configure<PhotoStorageOptions>(builder.Configuration.GetSection
 builder.Services.AddSingleton<IPhotoStorage, PhotoStorage>();
 
 builder.Services.Configure<InferenceOptions>(builder.Configuration.GetSection("Inference"));
-builder.Services.AddSingleton<RuleTriageEngine>();
 builder.Services.AddHttpClient<DiagnosisModel>();
-builder.Services.AddScoped<IInferenceService, InferenceService>();
+builder.Services.AddHttpClient<TriageModel>();
 
 var app = builder.Build();
 
