@@ -108,6 +108,15 @@ export interface Vitals {
   respRate: string;
 }
 
+/** Extra triage questions for the diagnosis model. null = not asked. */
+export interface Screening {
+  pregnant: boolean | null;
+  rainySeason: boolean | null;
+  daysFebrile: string;
+  avpu: string | null;
+  mobility: string | null;
+}
+
 export interface DifferentialDiagnosis {
   condition: string;
   probability: number;

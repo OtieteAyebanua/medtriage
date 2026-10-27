@@ -1,0 +1,12 @@
+{
+  "_note": "Settings for Models/newmodel.joblib. The model file stores neither its class names nor how text values were coded, so the labels and codes below must be confirmed against the training CSV. Until a label is filled in, that class is shown as 'Diagnosis class N (unlabelled)'.",
+  "model_path": "Models/newmodel.joblib",
+  "labels": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+  "codes_confirmed": false,
+  "sex": { "female": 0, "male": 1 },
+  "avpu": { "alert": 0, "voice": 1, "pain": 2, "unresponsive": 3 },
+  "mobility": { "walking": 0, "with_help": 1, "immobile": 2 },
+  "min_inputs": 10,
+  "top_n": 3,
+  "min_probability": 0.05
+}

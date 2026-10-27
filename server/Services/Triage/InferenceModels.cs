@@ -2,7 +2,7 @@ using MedTriage.Server.Dtos;
 
 namespace MedTriage.Server.Services.Triage;
 
-// What the local Random Forest service sees. Sent as snake_case JSON; see "Local inference" in API_README.md.
+// What the rule engine assesses.
 
 public record InferenceRequest(
     InferencePatient Patient,
@@ -17,10 +17,10 @@ public record InferenceSymptom(int SymptomId, string Name, string? Category, str
 
 public record InferenceVitals(double? Temperature, string? BloodPressure, int? HeartRate, double? OxygenLevel, int? RespiratoryRate);
 
-/// <summary>Normalised AI output, whichever engine produced it.</summary>
-/// <param name="Engine">"rules" or "random_forest". Returned to the client and logged, not stored.</param>
-/// <param name="Model">The model's name, or null for the rule engine.</param>
-/// <param name="SafetyRaisedFrom">The model's own level when the rule engine overruled it with a more urgent one.</param>
+/// <summary>Triage assessment.</summary>
+/// <param name="Engine">Always "rules". Returned to the client and logged, not stored.</param>
+/// <param name="Model">Always null; kept so the API response shape stays the same.</param>
+/// <param name="SafetyRaisedFrom">Always null; kept so the API response shape stays the same.</param>
 public record InferenceResult(
     int UrgencyScore,
     string TriageLevel,
@@ -34,10 +34,8 @@ public record InferenceResult(
 
 public class InferenceOptions
 {
-    /// <summary>Loopback-only URL for the local Random Forest sidecar.</summary>
-    public string LocalModelUrl { get; set; } = "http://127.0.0.1:8001/triage";
+    /// <summary>Loopback-only URL for the diagnosis-model sidecar (diagnosis_service.py).</summary>
+    public string DiagnosisModelUrl { get; set; } = "http://127.0.0.1:8002/diagnose";
 
     public int TimeoutMs { get; set; } = 5000;
-
-    public string ModelName { get; set; } = "MedTriage Random Forest";
 }

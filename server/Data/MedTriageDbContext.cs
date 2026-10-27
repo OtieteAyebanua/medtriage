@@ -92,11 +92,20 @@ public class MedTriageDbContext(DbContextOptions<MedTriageDbContext> options) : 
                     $"final_triage_level IS NULL OR final_triage_level IN ({SqlList(ClinicalValues.TriageLevels)})");
                 t.HasCheckConstraint("ck_patient_records_override_status", $"override_status IN ({SqlList(ClinicalValues.OverrideStatuses)})");
                 t.HasCheckConstraint("ck_patient_records_status", $"status IN ({SqlList(ClinicalValues.RecordStatuses)})");
+                t.HasCheckConstraint("ck_patient_records_days_febrile", "days_febrile IS NULL OR days_febrile >= 0");
+                t.HasCheckConstraint("ck_patient_records_avpu", $"avpu IS NULL OR avpu IN ({SqlList(ClinicalValues.AvpuLevels)})");
+                t.HasCheckConstraint("ck_patient_records_mobility", $"mobility IS NULL OR mobility IN ({SqlList(ClinicalValues.MobilityLevels)})");
+                t.HasCheckConstraint("ck_patient_records_tews_score", "tews_score IS NULL OR tews_score >= 0");
+                t.HasCheckConstraint("ck_patient_records_triage_category",
+                    $"triage_category IS NULL OR triage_category IN ({SqlList(ClinicalValues.TriageCategories)})");
             });
             e.HasKey(r => r.RecordId);
             e.Property(r => r.VisitType).HasMaxLength(20);
             e.Property(r => r.ChiefComplaint).HasMaxLength(1000);
             e.Property(r => r.VitalsBloodPressure).HasMaxLength(7);
+            e.Property(r => r.Avpu).HasMaxLength(20);
+            e.Property(r => r.Mobility).HasMaxLength(20);
+            e.Property(r => r.TriageCategory).HasMaxLength(10);
             e.Property(r => r.AiTriageLevel).HasMaxLength(20);
             e.Property(r => r.OverrideStatus).HasMaxLength(20).HasDefaultValue("pending");
             e.Property(r => r.OverrideReason).HasMaxLength(2000);

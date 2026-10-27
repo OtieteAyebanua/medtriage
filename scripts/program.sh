@@ -3,8 +3,8 @@ set -Eeuo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SERVER_DIR="$ROOT_DIR/server"
-PYTHON="$SERVER_DIR/.venv/bin/python"
-MODEL_ARTIFACT="$SERVER_DIR/artifacts/triage_random_forest.joblib"
+DIAGNOSIS_PYTHON="$SERVER_DIR/.venv-diagnosis/bin/python"
+DIAGNOSIS_ARTIFACT="$SERVER_DIR/Models/newmodel.joblib"
 
 if ! command -v npm >/dev/null 2>&1; then
   echo "npm is required. Install Node.js, then run npm install from the project root." >&2
@@ -18,18 +18,19 @@ if [[ ! -d "$ROOT_DIR/node_modules" ]]; then
   echo "Frontend dependencies are missing. Run npm install from the project root first." >&2
   exit 1
 fi
-if [[ ! -x "$PYTHON" ]]; then
-  echo "Python environment not found at $PYTHON. Create it and install server/requirements-ml.txt first." >&2
+
+if [[ ! -x "$DIAGNOSIS_PYTHON" ]]; then
+  echo "Diagnosis model environment not found at $DIAGNOSIS_PYTHON." >&2
+  echo "Create it with Python 3.11+: cd server && python3.11 -m venv .venv-diagnosis && .venv-diagnosis/bin/pip install -r requirements-diagnosis.txt" >&2
   exit 1
 fi
-if [[ ! -f "$MODEL_ARTIFACT" ]]; then
-  echo "Trained model not found at $MODEL_ARTIFACT." >&2
-  echo "Train it with: cd server && .venv/bin/python train_random_forest.py --data medtriage_synthetic_training_combined_7000.json" >&2
+if [[ ! -f "$DIAGNOSIS_ARTIFACT" ]]; then
+  echo "Diagnosis model not found at $DIAGNOSIS_ARTIFACT." >&2
   exit 1
 fi
 
 if command -v lsof >/dev/null 2>&1; then
-  for port in 3000 4000 8001; do
+  for port in 3000 4000 8002; do
     if lsof -nP -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1; then
       echo "Port $port is already in use. Stop the existing MedTriage service before running npm run program." >&2
       exit 1
@@ -71,16 +72,16 @@ NAMES+=(".NET API")
 
 (
   cd "$SERVER_DIR"
-  exec "$PYTHON" model_service.py
+  exec "$DIAGNOSIS_PYTHON" diagnosis_service.py
 ) &
 PIDS+=("$!")
-NAMES+=("Random Forest service")
+NAMES+=("Diagnosis model service")
 
 echo "Starting MedTriage development stack:"
 echo "  Frontend:       http://localhost:3000"
 echo "  Admin console:  http://localhost:3000/admin"
 echo "  .NET API:       http://localhost:4000"
-echo "  Random Forest:  http://localhost:8001"
+echo "  Diagnosis:      http://localhost:8002"
 echo "Press Ctrl+C to stop all services."
 
 while true; do

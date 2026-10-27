@@ -29,12 +29,12 @@ Connecting
   - Tablets and phones: open the address in the browser, then "Add to Home Screen".
   - To use MedTriage on this same Mac, install the "MedTriage" app here too.
 
-Random Forest model (optional)
-  MedTriage Server uses its built-in safety rules if the local Random Forest service is not
-  running. The Python service and trained model artifact are not bundled in this installer.
-  To run the model, install Python 3.9+, copy the server Python files and a trained
-  artifacts/triage_random_forest.joblib to the server computer, install requirements-ml.txt,
-  then run `python model_service.py`. The service listens on localhost port 8001.
+Diagnosis model (optional)
+  MedTriage Server uses its built-in safety rules for the triage level and possible conditions.
+  The diagnosis model service is not bundled in this installer. To run it, install Python 3.11+,
+  copy diagnosis_service.py, diagnosis_model.json, requirements-diagnosis.txt and
+  Models/newmodel.joblib to the server computer, install requirements-diagnosis.txt, then run
+  `python diagnosis_service.py`. The service listens on localhost port 8002.
 
 Demo accounts
   The server starts with demo data. Every demo account's password is demo123

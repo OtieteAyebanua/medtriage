@@ -233,6 +233,10 @@ namespace MedTriage.Server.Data.Migrations
                         .HasColumnType("INTEGER")
                         .HasColumnName("record_id");
 
+                    b.Property<bool?>("AbdominalPain")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("abdominal_pain");
+
                     b.Property<double?>("AiConfidence")
                         .HasColumnType("REAL")
                         .HasColumnName("ai_confidence");
@@ -264,25 +268,123 @@ namespace MedTriage.Server.Data.Migrations
                         .HasColumnType("INTEGER")
                         .HasColumnName("assigned_to");
 
+                    b.Property<string>("Avpu")
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("avpu");
+
+                    b.Property<bool?>("Bleeding")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("bleeding");
+
+                    b.Property<bool?>("BloodInSputum")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("blood_in_sputum");
+
+                    b.Property<bool?>("ChestPain")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("chest_pain");
+
                     b.Property<string>("ChiefComplaint")
                         .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("TEXT")
                         .HasColumnName("chief_complaint");
 
+                    b.Property<bool?>("Chills")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("chills");
+
+                    b.Property<bool?>("Constipation")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("constipation");
+
+                    b.Property<bool?>("Convulsions")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("convulsions");
+
+                    b.Property<bool?>("Cough")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("cough");
+
+                    b.Property<bool?>("DarkUrine")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("dark_urine");
+
+                    b.Property<int?>("DaysFebrile")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("days_febrile");
+
+                    b.Property<bool?>("Dehydration")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("dehydration");
+
                     b.Property<string>("Diagnosis")
                         .HasMaxLength(1000)
                         .HasColumnType("TEXT")
                         .HasColumnName("diagnosis");
+
+                    b.Property<bool?>("Diarrhea")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("diarrhea");
+
+                    b.Property<bool?>("DifficultyBreathing")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("difficulty_breathing");
+
+                    b.Property<bool?>("Dysuria")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("dysuria");
+
+                    b.Property<bool?>("Fatigue")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("fatigue");
 
                     b.Property<string>("FinalTriageLevel")
                         .HasMaxLength(20)
                         .HasColumnType("TEXT")
                         .HasColumnName("final_triage_level");
 
+                    b.Property<bool?>("Headache")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("headache");
+
                     b.Property<bool>("IsCurrent")
                         .HasColumnType("INTEGER")
                         .HasColumnName("is_current");
+
+                    b.Property<bool?>("Itching")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("itching");
+
+                    b.Property<bool?>("Jaundice")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("jaundice");
+
+                    b.Property<bool?>("JointMusclePain")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("joint_muscle_pain");
+
+                    b.Property<bool?>("LossOfAppetite")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("loss_of_appetite");
+
+                    b.Property<bool?>("LossOfSmell")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("loss_of_smell");
+
+                    b.Property<string>("Mobility")
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("mobility");
+
+                    b.Property<bool?>("Nausea")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("nausea");
+
+                    b.Property<bool?>("NeckStiffness")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("neck_stiffness");
 
                     b.Property<string>("OverrideReason")
                         .HasMaxLength(2000)
@@ -297,13 +399,45 @@ namespace MedTriage.Server.Data.Migrations
                         .HasDefaultValue("pending")
                         .HasColumnName("override_status");
 
+                    b.Property<bool?>("PainBehindEyes")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("pain_behind_eyes");
+
                     b.Property<int>("PatientId")
                         .HasColumnType("INTEGER")
                         .HasColumnName("patient_id");
 
+                    b.Property<bool?>("Pregnant")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("pregnant");
+
+                    b.Property<bool?>("RainySeason")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("rainy_season");
+
+                    b.Property<bool?>("Rash")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("rash");
+
                     b.Property<int>("RecordedBy")
                         .HasColumnType("INTEGER")
                         .HasColumnName("recorded_by");
+
+                    b.Property<bool?>("RedEyes")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("red_eyes");
+
+                    b.Property<bool?>("RunnyNose")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("runny_nose");
+
+                    b.Property<bool?>("SoreThroat")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("sore_throat");
+
+                    b.Property<bool?>("Sputum")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("sputum");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -313,9 +447,30 @@ namespace MedTriage.Server.Data.Migrations
                         .HasDefaultValue("waiting")
                         .HasColumnName("status");
 
+                    b.Property<bool?>("Sweating")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("sweating");
+
+                    b.Property<bool?>("SwollenLymphNodes")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("swollen_lymph_nodes");
+
+                    b.Property<int?>("TewsScore")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("tews_score");
+
                     b.Property<int?>("TreatedBy")
                         .HasColumnType("INTEGER")
                         .HasColumnName("treated_by");
+
+                    b.Property<string>("TriageCategory")
+                        .HasMaxLength(10)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("triage_category");
+
+                    b.Property<bool?>("UrinaryFrequency")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("urinary_frequency");
 
                     b.Property<DateTime>("VisitDate")
                         .ValueGeneratedOnAdd()
@@ -350,6 +505,14 @@ namespace MedTriage.Server.Data.Migrations
                         .HasColumnType("REAL")
                         .HasColumnName("vitals_temperature");
 
+                    b.Property<bool?>("Vomiting")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("vomiting");
+
+                    b.Property<bool?>("WeightLoss")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("weight_loss");
+
                     b.HasKey("RecordId");
 
                     b.HasIndex("AssignedTo");
@@ -372,11 +535,21 @@ namespace MedTriage.Server.Data.Migrations
 
                             t.HasCheckConstraint("ck_patient_records_ai_urgency_score", "ai_urgency_score BETWEEN 1 AND 5");
 
+                            t.HasCheckConstraint("ck_patient_records_avpu", "avpu IS NULL OR avpu IN ('alert', 'voice', 'pain', 'unresponsive')");
+
+                            t.HasCheckConstraint("ck_patient_records_days_febrile", "days_febrile IS NULL OR days_febrile >= 0");
+
                             t.HasCheckConstraint("ck_patient_records_final_triage_level", "final_triage_level IS NULL OR final_triage_level IN ('immediate', 'emergent', 'urgent', 'less_urgent', 'non_urgent')");
+
+                            t.HasCheckConstraint("ck_patient_records_mobility", "mobility IS NULL OR mobility IN ('walking', 'with_help', 'immobile')");
 
                             t.HasCheckConstraint("ck_patient_records_override_status", "override_status IN ('pending', 'accepted', 'overridden')");
 
                             t.HasCheckConstraint("ck_patient_records_status", "status IN ('waiting', 'triaged', 'in_progress', 'treated', 'discharged', 'referred')");
+
+                            t.HasCheckConstraint("ck_patient_records_tews_score", "tews_score IS NULL OR tews_score >= 0");
+
+                            t.HasCheckConstraint("ck_patient_records_triage_category", "triage_category IS NULL OR triage_category IN ('red', 'orange', 'yellow', 'green')");
 
                             t.HasCheckConstraint("ck_patient_records_visit_type", "visit_type IN ('walk_in', 'emergency', 'referral', 'follow_up')");
                         });

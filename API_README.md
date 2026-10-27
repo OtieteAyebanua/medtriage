@@ -105,6 +105,9 @@ The frontend expects mixed casing. Keep it as described here unless you also upd
 | Review (`override_status`) | `pending`, `accepted`, `overridden` |
 | Record `status` | `waiting`, `triaged`, `in_progress`, `treated`, `discharged`, `referred` |
 | Disposition (set by the review) | `in_progress`, `treated`, `discharged`, `referred` |
+| AVPU | `alert`, `voice`, `pain`, `unresponsive` |
+| Mobility | `walking`, `with_help`, `immobile` |
+| Triage category (SATS) | `red`, `orange`, `yellow`, `green` |
 
 ---
 
@@ -117,7 +120,7 @@ These are the tables from the original Prisma schema. Any database works; the re
 | `healthcare_workers` | `user_id`, `first_name`, `middle_name?`, `last_name`, `employee_id` (unique), `email` (unique), `gender`, `password_hash`, `position`, `created_at` |
 | `sessions` | `id`, `token` (unique), `user_id` → worker, `expires_at`, `created_at` |
 | `patients` | `patient_id`, `first_name`, `middle_name?`, `last_name`, `date_of_birth`, `gender`, `email?`, `blood_type`, `allergies?`, `chronic_conditions?`, `photo_path?`, `created_at` |
-| `patient_records` (one per visit) | `record_id`, `patient_id`, `recorded_by` → worker, `visit_type`, `chief_complaint`, `vitals_temperature?`, `vitals_blood_pressure?`, `vitals_heart_rate?`, `vitals_oxygen_level?`, `vitals_respiratory_rate?`, `ai_urgency_score` (1–5), `ai_triage_level`, `ai_confidence?`, `ai_reasoning`, `ai_suggested_tests?` (JSON array), `ai_differential_diagnosis?` (JSON array), `assigned_to?` → worker, `override_status`, `override_reason?`, `final_triage_level?`, `diagnosis?`, `treated_by?` → worker, `status`, `is_current`, `visit_date` |
+| `patient_records` (one per visit) | `record_id`, `patient_id`, `recorded_by` → worker, `visit_type`, `chief_complaint`, `vitals_temperature?`, `vitals_blood_pressure?`, `vitals_heart_rate?`, `vitals_oxygen_level?`, `vitals_respiratory_rate?`, diagnosis-model inputs (`pregnant?`, `rainy_season?`, `days_febrile?`, `avpu?`, `mobility?`, and 33 yes/no symptom flags `chills?` … `dehydration?`, named as in the training CSV), `tews_score?`, `triage_category?`, `ai_urgency_score` (1–5), `ai_triage_level`, `ai_confidence?`, `ai_reasoning`, `ai_suggested_tests?` (JSON array), `ai_differential_diagnosis?` (JSON array), `assigned_to?` → worker, `override_status`, `override_reason?`, `final_triage_level?`, `diagnosis?`, `treated_by?` → worker, `status`, `is_current`, `visit_date` |
 | `symptoms` (catalogue) | `symptom_id`, `symptom_name` (unique), `category`, `description`, `severity_scale` (1–5), `related_conditions?`, `synonyms?`, `follow_up_questions?` |
 | `record_symptoms` | `record_symptom_id`, `record_id`, `symptom_id`, `severity`, `duration`, `notes?` |
 
@@ -426,7 +429,15 @@ Request:
   "symptoms": [
     { "symptomId": 1, "severity": "Moderate", "duration": "3–7 days", "notes": "Worse at night" },
     { "symptomId": 2, "severity": "Severe", "duration": "1–2 days", "notes": "" }
-  ]
+  ],
+  "screening": {
+    "pregnant": false,
+    "rainySeason": true,
+    "daysFebrile": 3,
+    "avpu": "alert",
+    "mobility": "walking",
+    "symptomFlags": { "chills": true, "headache": true, "cough": false }
+  }
 }
 ```
 
@@ -443,6 +454,7 @@ Validation:
 | `vitals.oxygenLevel` | Optional, 50–100 % |
 | `vitals.respiratoryRate` | Optional, 4–80 /min (store as an integer) |
 | `symptoms[]` | Optional array. `symptomId` must exist in the catalogue (`400 "Unknown symptom IDs: …"`). `severity` must be mild, moderate or severe in any case (default `moderate`). `duration` max 100 (default `"unknown"`). `notes` max 1000 |
+| `screening` | Optional; every field may be null (not asked). `daysFebrile` 0–365, `avpu` and `mobility` from the enums, `symptomFlags` keys from the 33 checklist names (`400 "Unknown symptom flags: …"`). Saved on the record and sent to the [diagnosis model](#diagnosis-model) |
 
 All vitals are optional. Treat a blank value or `null` as "not measured". Accept numbers or numeric strings.
 
@@ -457,14 +469,14 @@ Response `200`:
 {
   "success": true,
   "record_id": 48,
-  "engine": "random_forest",
-  "model": "MedTriage Random Forest",
+  "engine": "rules",
+  "model": null,
   "safety_raised_from": null,
   "triage": {
     "urgency_level": 3,
     "urgency_category": "URGENT",
     "triage_level": "urgent",
-    "confidence": 0.81,
+    "confidence": null,
     "reasoning": "Febrile patient with prominent systemic symptoms; stable vitals but high pyrexia warrants prompt diagnostic workup.",
     "recommended_tests": ["Malaria Rapid Diagnostic Test (mRDT)", "Full Blood Count (FBC)"],
     "differential_diagnoses": [
@@ -477,8 +489,8 @@ Response `200`:
 
 - `urgency_level` is 1–5. The UI's result screen is driven by this number.
 - `probability` is 0–1, sorted from highest to lowest.
-- `engine` is `"random_forest"` (the configured HTTP model service) or `"rules"` (built-in rule engine). `model` is the configured model name, or `null` for the rules. The result screen shows both. Neither is stored.
-- `safety_raised_from` is the AI model's own level when the rule engine found warning signs and raised it to a more urgent one (see [Inference service](#inference-service)); otherwise `null`.
+- `engine` is always `"rules"`: the built-in rule engine sets the triage level. `model` and `safety_raised_from` are always `null` and kept for compatibility.
+- `differential_diagnoses` come from the [diagnosis model](#diagnosis-model) when it is running, otherwise from the rule engine.
 - `urgency_category` isn't displayed, but `TriageResult` in `types.ts` requires it.
 
 #### 12. `GET /api/records/queue`
@@ -740,60 +752,41 @@ Response `200`: `{ "practitioner": { … } }`. `404` if no such worker.
 
 ## Local inference
 
-`POST /api/triage` calls the Random Forest sidecar at `http://127.0.0.1:8001/triage`. The endpoint is restricted to loopback addresses; the app has no remote inference provider or API key configuration. The built-in rule engine also runs on each assessment as a safety floor and fallback.
+The built-in rule engine sets the triage level on every assessment. Possible conditions come from the local diagnosis model below when it is running. Its endpoint is restricted to loopback addresses; the app has no remote inference provider or API key configuration.
 
-If the local model service is unavailable, too slow, or returns an invalid response, the rule engine supplies the result. If it detects greater urgency than the model, the rule result wins and `safety_raised_from` records the model's original level.
+Start the whole local stack with `npm run program`.
 
-Start the whole local stack with `npm run program`, or start the sidecar from `server/` with `.venv/bin/python model_service.py`. The sidecar loads `artifacts/triage_random_forest.joblib` and listens only on `127.0.0.1:8001`.
+### Diagnosis model
 
-### Local model request and response
+Alongside triage, `POST /api/triage` sends the diagnosis inputs (the `screening` fields plus age, sex and vitals) to a local sidecar at `http://127.0.0.1:8002/diagnose`. It runs `server/diagnosis_service.py`, which loads `server/Models/newmodel.joblib` in its own Python 3.11+ environment (`server/.venv-diagnosis`, from `requirements-diagnosis.txt`). Loading takes about a minute; until then, and whenever it fails, the rule engine's possible conditions are kept.
 
-The .NET API sends this snake_case JSON to the loopback sidecar:
+When it returns conditions, they replace the rule engine's `differential_diagnosis`; the triage level is unaffected. It returns nothing when fewer than `min_inputs` of its 45 inputs are present.
 
-Request body (snake_case):
+`server/diagnosis_model.json` holds what the model file does not: the name of each class (0–14) and how `sex`, `avpu` and `mobility` were coded in training. Until a label is filled in, the class shows as "Diagnosis class N (unlabelled)". Set `codes_confirmed` to `true` once the codes are checked against the training data.
 
-```json
-{
-  "patient": { "age": 34, "sex": "Female", "blood_type": "O+", "chronic_conditions": "Asthma", "allergies": null },
-  "visit_type": "walk_in",
-  "chief_complaint": "High fever and headache for 3 days",
-  "symptoms": [
-    { "symptom_id": 1, "name": "High Fever", "category": "systemic", "severity": "moderate", "duration": "3–7 days", "notes": null }
-  ],
-  "vitals": { "temperature": 38.9, "blood_pressure": "118/76", "heart_rate": 98, "oxygen_level": 97, "respiratory_rate": 18 }
-}
-```
-
-The sidecar returns `200` with:
+Request body (snake_case; `null` = not measured or not asked):
 
 ```json
 {
-  "urgency_score": 3,
-  "triage_level": "urgent",
-  "confidence": 0.87,
-  "reasoning": "…",
-  "suggested_tests": ["Malaria RDT"],
-  "differential_diagnosis": [{ "condition": "Malaria", "probability": 0.72, "rationale": "…" }]
+  "age_years": 0.25, "sex": "Female", "pregnant": false, "rainy_season": true, "days_febrile": 3,
+  "temp_c": 39.2, "heart_rate": 110, "resp_rate": 22, "systolic_bp": 115, "spo2": 97,
+  "avpu": "alert", "mobility": "walking",
+  "symptom_flags": { "chills": true, "headache": true, "cough": false }
 }
 ```
 
-The API validates the response strictly; a bad model reply falls back to the rule engine:
-- `urgency_score` (1–5) and a non-empty `reasoning` are required. Otherwise, treat the call as failed and use the rule engine.
-- `triage_level` is optional. Derive it from the score if it's missing or invalid.
-- `confidence` must be 0–1; otherwise store `null`.
-- Normalize `probability` values above 1 (e.g. `72`) to 0–1.
+Response: `{ "diagnoses": [{ "condition": "…", "probability": 0.89, "rationale": "…" }], "inputs_used": 45, "inputs_total": 45 }`
 
 ### Configuration
 
-These live in `server/appsettings.json`. Any of them can be overridden with an environment variable using `__` (e.g. `Inference__LocalModelUrl`). The model URL must resolve to a loopback address.
+These live in `server/appsettings.json`. Any of them can be overridden with an environment variable using `__` (e.g. `Inference__DiagnosisModelUrl`). The model URL must resolve to a loopback address.
 
 | Setting | Default | Purpose |
 |---|---|---|
 | `ConnectionStrings:MedTriage` | `Data Source=medtriage.db` | SQLite database file |
 | `Uploads:Directory` | `uploads` | Where patient photos are stored |
-| `Inference:LocalModelUrl` | `http://127.0.0.1:8001/triage` | Loopback-only Random Forest sidecar endpoint |
-| `Inference:ModelName` | `MedTriage Random Forest` | Model name shown in the triage result |
-| `Inference:TimeoutMs` | `5000` | Timeout for the local model service |
+| `Inference:DiagnosisModelUrl` | `http://127.0.0.1:8002/diagnose` | Loopback-only diagnosis-model sidecar endpoint |
+| `Inference:TimeoutMs` | `5000` | Timeout for the diagnosis model service |
 
 ---
 

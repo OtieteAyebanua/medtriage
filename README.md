@@ -13,7 +13,7 @@ npm run db:setup              # creates the SQLite DB and loads the full demo da
 npm run dev                   # http://localhost:3000
 ```
 
-To start the complete local development stack (Vite frontend, .NET API, and Random Forest model service) together, run `npm run program` from the project root. Open http://localhost:3000; press Ctrl+C to stop all three processes.
+To start the complete local development stack (Vite frontend, .NET API, and diagnosis model service) together, run `npm run program` from the project root. Open http://localhost:3000; press Ctrl+C to stop all three processes.
 
 ### Demo logins (password for all: `password123`)
 
@@ -44,7 +44,7 @@ The demo dataset contains 20 patients (14 with placeholder photos), a 33-symptom
 
 ## Local model service
 
-The .NET API calls the Random Forest Python sidecar at `http://127.0.0.1:8001`. Both services bind to loopback, and the API rejects non-loopback model URLs. There is no remote inference endpoint or API key configuration. If the local sidecar is unavailable, the built-in rule engine supplies the triage result. See [`server/README.md`](server/README.md) for local setup and model training instructions.
+The built-in rule engine sets the triage level. Possible conditions come from the diagnosis model, a Python sidecar at `http://127.0.0.1:8002` that loads `server/Models/newmodel.joblib`. It binds to loopback, and the API rejects non-loopback model URLs. There is no remote inference endpoint or API key configuration. If the sidecar is unavailable, the rule engine supplies the possible conditions. See [`server/README.md`](server/README.md) for local setup.
 
 ## API overview
 

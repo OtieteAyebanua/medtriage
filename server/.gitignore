@@ -8,6 +8,7 @@
 
 # Local Python ML environment and bytecode
 .venv/
+.venv-diagnosis/
 __pycache__/
 *.py[cod]
 artifacts/

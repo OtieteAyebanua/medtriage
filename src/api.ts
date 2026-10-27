@@ -159,15 +159,25 @@ export interface RunTriageInput {
     respiratoryRate: number | null;
   };
   symptoms: Array<{ symptomId: number; severity: string; duration: string; notes: string | null }>;
+  /** Diagnosis-model inputs; null means not asked */
+  screening: {
+    pregnant: boolean | null;
+    rainySeason: boolean | null;
+    daysFebrile: number | null;
+    avpu: string | null;
+    mobility: string | null;
+    /** Every checklist flag keyed by its training-CSV name; unticked is false */
+    symptomFlags: Record<string, boolean>;
+  };
 }
 
 export interface RunTriageResult {
   record_id: number;
-  /** Which engine assessed the patient */
-  engine: 'random_forest' | 'rules';
-  /** The model's name; null for the rule engine */
+  /** The rule engine sets the triage level */
+  engine: 'rules';
+  /** Always null; kept for API compatibility */
   model: string | null;
-  /** The AI model's own level when the safety rules raised it to a more urgent one */
+  /** Always null; kept for API compatibility */
   safety_raised_from: number | null;
   triage: TriageResult & { recommended_tests: string[]; differential_diagnoses: DifferentialDiagnosis[] };
 }

@@ -243,3 +243,71 @@ export function photoUrl(patientId: number, photoPath?: string | null): string |
 export function initials(first?: string | null, last?: string | null): string {
   return `${(first ?? '').charAt(0)}${(last ?? '').charAt(0)}`.toUpperCase() || '?';
 }
+
+/* ---------------- Diagnosis-model screening ---------------- */
+
+export const AVPU_OPTIONS = [
+  { value: 'alert', label: 'Alert' },
+  { value: 'voice', label: 'Responds to voice' },
+  { value: 'pain', label: 'Responds to pain' },
+  { value: 'unresponsive', label: 'Unresponsive' },
+];
+
+export const MOBILITY_OPTIONS = [
+  { value: 'walking', label: 'Walking' },
+  { value: 'with_help', label: 'With help' },
+  { value: 'immobile', label: 'Stretcher / immobile' },
+];
+
+export function optionLabel(options: Array<{ value: string; label: string }>, value: string | null): string {
+  return options.find((o) => o.value === value)?.label ?? '—';
+}
+
+/**
+ * Yes/no checklist the diagnosis model was trained on. Keys are the training-CSV column names.
+ * `match` ticks the flag automatically when a catalogue symptom with a matching name is selected.
+ */
+export const SYMPTOM_FLAGS: Array<{ key: string; label: string; match: RegExp }> = [
+  { key: 'chills', label: 'Chills', match: /chill|rigor/i },
+  { key: 'headache', label: 'Headache', match: /headache/i },
+  { key: 'vomiting', label: 'Vomiting', match: /vomit/i },
+  { key: 'nausea', label: 'Nausea', match: /nausea/i },
+  { key: 'diarrhea', label: 'Diarrhoea', match: /diarrh/i },
+  { key: 'constipation', label: 'Constipation', match: /constipat/i },
+  { key: 'abdominal_pain', label: 'Abdominal pain', match: /abdominal/i },
+  { key: 'cough', label: 'Cough', match: /cough/i },
+  { key: 'sputum', label: 'Sputum', match: /sputum|phlegm/i },
+  { key: 'blood_in_sputum', label: 'Blood in sputum', match: /coughing up blood|ha?emoptysis/i },
+  { key: 'chest_pain', label: 'Chest pain', match: /chest pain/i },
+  { key: 'difficulty_breathing', label: 'Difficulty breathing', match: /shortness of breath|dyspn|difficulty breathing/i },
+  { key: 'sore_throat', label: 'Sore throat', match: /sore throat/i },
+  { key: 'runny_nose', label: 'Runny nose', match: /runny nose/i },
+  { key: 'loss_of_smell', label: 'Loss of smell', match: /loss of smell/i },
+  { key: 'rash', label: 'Rash', match: /rash/i },
+  { key: 'itching', label: 'Itching', match: /itch/i },
+  { key: 'neck_stiffness', label: 'Neck stiffness', match: /neck stiff|nuchal/i },
+  { key: 'convulsions', label: 'Convulsions', match: /seizure|convulsion/i },
+  { key: 'bleeding', label: 'Bleeding', match: /bleeding|blood in stool/i },
+  { key: 'joint_muscle_pain', label: 'Joint / muscle pain', match: /joint|muscle pain|myalgia/i },
+  { key: 'pain_behind_eyes', label: 'Pain behind the eyes', match: /behind (the )?eyes|retro-?orbital/i },
+  { key: 'red_eyes', label: 'Red eyes', match: /red eye|conjunctiv/i },
+  { key: 'jaundice', label: 'Jaundice', match: /jaundice/i },
+  { key: 'dark_urine', label: 'Dark urine', match: /dark urine/i },
+  { key: 'dysuria', label: 'Painful urination', match: /painful urination|dysuria/i },
+  { key: 'urinary_frequency', label: 'Urinary frequency', match: /urinary frequency|frequent urination/i },
+  { key: 'fatigue', label: 'Fatigue', match: /fatigue/i },
+  { key: 'loss_of_appetite', label: 'Loss of appetite', match: /appetite/i },
+  { key: 'sweating', label: 'Sweating', match: /sweat/i },
+  { key: 'weight_loss', label: 'Weight loss', match: /weight loss/i },
+  { key: 'swollen_lymph_nodes', label: 'Swollen lymph nodes', match: /lymph/i },
+  { key: 'dehydration', label: 'Dehydration', match: /dehydrat/i },
+];
+
+/** Checklist keys implied by a catalogue symptom, e.g. "Coughing up Blood" → cough, blood_in_sputum */
+export function flagsForSymptom(symptomName: string): string[] {
+  return SYMPTOM_FLAGS.filter((f) => f.match.test(symptomName)).map((f) => f.key);
+}
+
+export function isFemale(gender?: string | null): boolean {
+  return /^f/i.test(gender?.trim() ?? '');
+}

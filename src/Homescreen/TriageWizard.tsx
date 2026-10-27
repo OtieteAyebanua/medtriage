@@ -5,16 +5,22 @@ import styles from './Homescreen.module.css';
 import { errorMessage, RunTriageResult, runTriage as runTriageRequest } from '@/api';
 import {
   ageFrom,
+  AVPU_OPTIONS,
   DURATION_OPTIONS,
+  flagsForSymptom,
   formatDate,
   fullName,
   getVitalStatus,
   hasAllergies,
+  isFemale,
   lastVisitSummary,
   matchesPatient,
+  MOBILITY_OPTIONS,
+  optionLabel,
   percent,
   relativeTime,
   SEVERITY_OPTIONS,
+  SYMPTOM_FLAGS,
   TRIAGE_LEVELS,
   clampLevel,
   VISIT_TYPES,
@@ -22,7 +28,7 @@ import {
   VITAL_DEFS,
 } from './clinical';
 import { Avatar, EmptyState, Field, Icon, LevelBadge, levelClass, Notice, SectionLabel, Spinner, VitalStatusPill } from './shared';
-import { PatientItem, SelectedSymptom, SymptomItem, TriageResult, Vitals } from './types';
+import { PatientItem, Screening, SelectedSymptom, SymptomItem, TriageResult, Vitals } from './types';
 
 const STEPS = [
   { num: 1, label: 'Patient' },
@@ -33,6 +39,14 @@ const STEPS = [
 ];
 
 const EMPTY_VITALS: Vitals = { temp: '', bp: '', heartRate: '', spo2: '', respRate: '' };
+const EMPTY_SCREENING: Screening = { pregnant: null, rainySeason: null, daysFebrile: '', avpu: null, mobility: null };
+const YES_NO = [
+  { value: 'yes', label: 'Yes' },
+  { value: 'no', label: 'No' },
+];
+
+const yesNoValue = (v: boolean | null) => (v === null ? null : v ? 'yes' : 'no');
+const yesNoLabel = (v: boolean | null) => (v === null ? 'Not asked' : v ? 'Yes' : 'No');
 
 /** Which engine produced a result, shown under it */
 type EngineInfo = Pick<RunTriageResult, 'engine' | 'model' | 'safety_raised_from'>;
@@ -73,6 +87,9 @@ export default function TriageWizard({
   const [vitals, setVitals] = useState<Vitals>(EMPTY_VITALS);
   const [symptomQuery, setSymptomQuery] = useState('');
   const [selectedSymptoms, setSelectedSymptoms] = useState<SelectedSymptom[]>([]);
+  const [screening, setScreening] = useState<Screening>(EMPTY_SCREENING);
+  /** Ticked checklist keys */
+  const [symptomFlags, setSymptomFlags] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [result, setResult] = useState<TriageResult | null>(null);
@@ -88,6 +105,8 @@ export default function TriageWizard({
     setVitals(EMPTY_VITALS);
     setSymptomQuery('');
     setSelectedSymptoms([]);
+    setScreening(EMPTY_SCREENING);
+    setSymptomFlags([]);
     setSubmitError(null);
     setResult(null);
     setRecordId(null);
@@ -107,7 +126,9 @@ export default function TriageWizard({
   const complaintOk = chiefComplaint.trim().length > 0;
   const step1Ok = !!currentPatient && complaintOk;
   const bpStatus = getVitalStatus('bp', vitals.bp);
-  const vitalsOk = bpStatus.kind !== 'invalid';
+  const daysFebrileOk = !screening.daysFebrile.trim() || /^\d{1,3}$/.test(screening.daysFebrile.trim());
+  const vitalsOk = bpStatus.kind !== 'invalid' && daysFebrileOk;
+  const female = isFemale(currentPatient?.gender);
   const recordedVitalsCount = VITAL_DEFS.filter((d) => vitals[d.key].trim()).length;
 
   const filteredPatients = useMemo(
@@ -135,7 +156,16 @@ export default function TriageWizard({
     return Object.entries(groups);
   }, [filteredSymptoms]);
 
+  const toggleFlag = (key: string) => {
+    setSymptomFlags((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
+  };
+
   const toggleSymptom = (sym: SymptomItem) => {
+    // Picking a catalogue symptom ticks the matching checklist items; removing it leaves them for the nurse to untick
+    if (!selectedSymptoms.some((s) => s.symptomId === sym.symptom_id)) {
+      const implied = flagsForSymptom(sym.symptom_name);
+      setSymptomFlags((prev) => [...prev, ...implied.filter((k) => !prev.includes(k))]);
+    }
     setSelectedSymptoms((prev) =>
       prev.some((s) => s.symptomId === sym.symptom_id)
         ? prev.filter((s) => s.symptomId !== sym.symptom_id)
@@ -171,6 +201,14 @@ export default function TriageWizard({
           duration: s.duration,
           notes: s.notes.trim() || null,
         })),
+        screening: {
+          pregnant: female ? screening.pregnant : false,
+          rainySeason: screening.rainySeason,
+          daysFebrile: num(screening.daysFebrile),
+          avpu: screening.avpu,
+          mobility: screening.mobility,
+          symptomFlags: Object.fromEntries(SYMPTOM_FLAGS.map((f) => [f.key, symptomFlags.includes(f.key)])),
+        },
       });
       setResult(data.triage);
       setRecordId(data.record_id);
@@ -433,12 +471,79 @@ export default function TriageWizard({
                 })}
               </div>
 
+              <div className={styles.selectedSymptoms}>
+                <SectionLabel>Observations</SectionLabel>
+                <p className={styles.mutedText}>Used by the diagnosis model. Leave anything you didn&apos;t ask unselected.</p>
+
+                <div className={styles.formGroup}>
+                  <span className={styles.inputLabel}>Level of consciousness (AVPU)</span>
+                  <ChoiceSegment
+                    label="Level of consciousness"
+                    options={AVPU_OPTIONS}
+                    value={screening.avpu}
+                    onChange={(avpu) => setScreening({ ...screening, avpu })}
+                  />
+                </div>
+
+                <div className={styles.formRow2}>
+                  <div className={styles.formGroup}>
+                    <span className={styles.inputLabel}>Mobility</span>
+                    <ChoiceSegment
+                      label="Mobility"
+                      options={MOBILITY_OPTIONS}
+                      value={screening.mobility}
+                      onChange={(mobility) => setScreening({ ...screening, mobility })}
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label htmlFor="days-febrile" className={styles.inputLabel}>
+                      Days with fever
+                    </label>
+                    <input
+                      id="days-febrile"
+                      type="text"
+                      inputMode="numeric"
+                      className={`${styles.textInput} ${daysFebrileOk ? '' : styles.inputInvalid}`}
+                      placeholder="e.g. 3 — 0 if no fever"
+                      value={screening.daysFebrile}
+                      onChange={(e) => setScreening({ ...screening, daysFebrile: e.target.value })}
+                      aria-invalid={!daysFebrileOk}
+                    />
+                  </div>
+                </div>
+
+                <div className={styles.formRow2}>
+                  {female && (
+                    <div className={styles.formGroup}>
+                      <span className={styles.inputLabel}>Pregnant?</span>
+                      <ChoiceSegment
+                        label="Pregnant"
+                        options={YES_NO}
+                        value={yesNoValue(screening.pregnant)}
+                        onChange={(v) => setScreening({ ...screening, pregnant: v === null ? null : v === 'yes' })}
+                      />
+                    </div>
+                  )}
+                  <div className={styles.formGroup}>
+                    <span className={styles.inputLabel}>Rainy season?</span>
+                    <ChoiceSegment
+                      label="Rainy season"
+                      options={YES_NO}
+                      value={yesNoValue(screening.rainySeason)}
+                      onChange={(v) => setScreening({ ...screening, rainySeason: v === null ? null : v === 'yes' })}
+                    />
+                  </div>
+                </div>
+              </div>
+
               <footer className={styles.wizardNav}>
                 <button type="button" className={styles.btnSecondary} onClick={() => setStep(1)}>
                   <Icon name="arrowLeft" /> Back
                 </button>
                 <span className={styles.navHint}>
-                  {!vitalsOk
+                  {!daysFebrileOk
+                    ? 'Days with fever must be a whole number'
+                    : !vitalsOk
                     ? 'Fix the blood pressure format to continue'
                     : recordedVitalsCount === 0
                       ? 'No vitals recorded — you can still continue'
@@ -582,6 +687,33 @@ export default function TriageWizard({
                 )}
               </div>
 
+              <div className={styles.selectedSymptoms}>
+                <SectionLabel right={<span className={styles.tableMuted}>{symptomFlags.length} ticked</span>}>
+                  Symptom checklist
+                </SectionLabel>
+                <p className={styles.mutedText}>
+                  Ask about each one and tick all that apply. Symptoms picked above are ticked for you; anything left unticked is saved
+                  as “no”.
+                </p>
+                <div className={styles.symptomPills}>
+                  {SYMPTOM_FLAGS.map((f) => {
+                    const on = symptomFlags.includes(f.key);
+                    return (
+                      <button
+                        key={f.key}
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => toggleFlag(f.key)}
+                        className={`${styles.symptomPill} ${on ? styles.symptomPillActive : ''}`}
+                      >
+                        <Icon name={on ? 'check' : 'plus'} size={13} />
+                        {f.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <footer className={styles.wizardNav}>
                 <button type="button" className={styles.btnSecondary} onClick={() => setStep(2)}>
                   <Icon name="arrowLeft" /> Back
@@ -679,6 +811,46 @@ export default function TriageWizard({
                         <span key={s.symptomId} className={styles.chip} title={s.notes || undefined}>
                           <strong>{s.name}</strong> · {s.severity} · {s.duration}
                           {s.notes.trim() ? ` · “${s.notes.trim()}”` : ''}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className={`${styles.reviewCard} ${styles.reviewCardWide}`}>
+                  <SectionLabel
+                    right={
+                      <button type="button" className={styles.btnLink} onClick={() => setStep(2)}>
+                        <Icon name="edit" size={13} /> Edit
+                      </button>
+                    }
+                  >
+                    Observations
+                  </SectionLabel>
+                  <Field label="Consciousness (AVPU)">{optionLabel(AVPU_OPTIONS, screening.avpu)}</Field>
+                  <Field label="Mobility">{optionLabel(MOBILITY_OPTIONS, screening.mobility)}</Field>
+                  <Field label="Days with fever">{screening.daysFebrile.trim() || '—'}</Field>
+                  {female && <Field label="Pregnant">{yesNoLabel(screening.pregnant)}</Field>}
+                  <Field label="Rainy season">{yesNoLabel(screening.rainySeason)}</Field>
+                </div>
+
+                <div className={`${styles.reviewCard} ${styles.reviewCardWide}`}>
+                  <SectionLabel
+                    right={
+                      <button type="button" className={styles.btnLink} onClick={() => setStep(3)}>
+                        <Icon name="edit" size={13} /> Edit
+                      </button>
+                    }
+                  >
+                    Symptom checklist ({symptomFlags.length} of {SYMPTOM_FLAGS.length})
+                  </SectionLabel>
+                  {symptomFlags.length === 0 ? (
+                    <p className={styles.mutedText}>Nothing ticked — all saved as “no”.</p>
+                  ) : (
+                    <div className={styles.chipRow}>
+                      {SYMPTOM_FLAGS.filter((f) => symptomFlags.includes(f.key)).map((f) => (
+                        <span key={f.key} className={styles.chip}>
+                          {f.label}
                         </span>
                       ))}
                     </div>
@@ -793,6 +965,36 @@ export default function TriageWizard({
 }
 
 /* ---------------- Sub-components ---------------- */
+
+/** Single-choice segmented control; clicking the selected option clears it back to "not asked". */
+function ChoiceSegment({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: Array<{ value: string; label: string }>;
+  value: string | null;
+  onChange: (value: string | null) => void;
+}) {
+  return (
+    <div className={styles.segmented} role="radiogroup" aria-label={label}>
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          role="radio"
+          aria-checked={value === o.value}
+          className={`${styles.segment} ${value === o.value ? styles.segmentActive : ''}`}
+          onClick={() => onChange(value === o.value ? null : o.value)}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function SummaryRow({
   label,

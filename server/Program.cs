@@ -90,7 +90,7 @@ builder.Services.AddSingleton<IPhotoStorage, PhotoStorage>();
 
 builder.Services.Configure<InferenceOptions>(builder.Configuration.GetSection("Inference"));
 builder.Services.AddSingleton<RuleTriageEngine>();
-builder.Services.AddHttpClient<RandomForestTriageModel>();
+builder.Services.AddHttpClient<DiagnosisModel>();
 builder.Services.AddScoped<IInferenceService, InferenceService>();
 
 // ---- Network discovery, so MedTriage apps on the facility network find this server by themselves ----

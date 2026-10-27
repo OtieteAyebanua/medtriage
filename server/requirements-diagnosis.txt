@@ -1,0 +1,6 @@
+# Python 3.11+ environment for the diagnosis model (Models/newmodel.joblib was saved with scikit-learn 1.9.1).
+# Kept separate from requirements-ml.txt, whose Python 3.9 baseline cannot load it.
+numpy==2.4.6
+pandas==3.1.0
+scikit-learn==1.9.1
+joblib==1.6.0

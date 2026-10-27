@@ -24,6 +24,58 @@ public class PatientRecord
     public double? VitalsOxygenLevel { get; set; }
     public int? VitalsRespiratoryRate { get; set; }
 
+    // Diagnosis-model inputs. Named after the training CSV columns; null means not asked.
+    // age_years, sex, temp_c, spo2 and systolic_bp come from the patient and the vitals above.
+    public bool? Pregnant { get; set; }
+    public bool? RainySeason { get; set; }
+    public int? DaysFebrile { get; set; }
+
+    /// <summary>alert, voice, pain or unresponsive.</summary>
+    public string? Avpu { get; set; }
+
+    /// <summary>walking, with_help or immobile.</summary>
+    public string? Mobility { get; set; }
+
+    public bool? Chills { get; set; }
+    public bool? Headache { get; set; }
+    public bool? Vomiting { get; set; }
+    public bool? Nausea { get; set; }
+    public bool? Diarrhea { get; set; }
+    public bool? Constipation { get; set; }
+    public bool? AbdominalPain { get; set; }
+    public bool? Cough { get; set; }
+    public bool? Sputum { get; set; }
+    public bool? BloodInSputum { get; set; }
+    public bool? ChestPain { get; set; }
+    public bool? DifficultyBreathing { get; set; }
+    public bool? SoreThroat { get; set; }
+    public bool? RunnyNose { get; set; }
+    public bool? LossOfSmell { get; set; }
+    public bool? Rash { get; set; }
+    public bool? Itching { get; set; }
+    public bool? NeckStiffness { get; set; }
+    public bool? Convulsions { get; set; }
+    public bool? Bleeding { get; set; }
+    public bool? JointMusclePain { get; set; }
+    public bool? PainBehindEyes { get; set; }
+    public bool? RedEyes { get; set; }
+    public bool? Jaundice { get; set; }
+    public bool? DarkUrine { get; set; }
+    public bool? Dysuria { get; set; }
+    public bool? UrinaryFrequency { get; set; }
+    public bool? Fatigue { get; set; }
+    public bool? LossOfAppetite { get; set; }
+    public bool? Sweating { get; set; }
+    public bool? WeightLoss { get; set; }
+    public bool? SwollenLymphNodes { get; set; }
+    public bool? Dehydration { get; set; }
+
+    /// <summary>Triage Early Warning Score (SATS).</summary>
+    public int? TewsScore { get; set; }
+
+    /// <summary>red, orange, yellow or green (SATS).</summary>
+    public string? TriageCategory { get; set; }
+
     // AI assessment
     /// <summary>1 (immediate) to 5 (non-urgent).</summary>
     public int AiUrgencyScore { get; set; }

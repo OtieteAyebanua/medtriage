@@ -1,3 +1,4 @@
+using System.Reflection;
 using MedTriage.Server.Common;
 using MedTriage.Server.Dtos;
 using MedTriage.Server.Models;
@@ -10,7 +11,8 @@ public class TriageService(
     IDocumentRepository<Patient> patients,
     IDocumentRepository<Symptom> symptoms,
     IDocumentRepository<PatientRecord> records,
-    IInferenceService inference) : ITriageService
+    IInferenceService inference,
+    DiagnosisModel diagnosis) : ITriageService
 {
     public async Task<TriageResponse> RunAsync(RunTriageRequest request, int recordedByUserId, CancellationToken ct = default)
     {
@@ -36,6 +38,19 @@ public class TriageService(
             })
             .ToList();
 
+        var sc = request.Screening;
+        var daysFebrile = ToInt(Validate.OptionalNumber(sc?.DaysFebrile, "screening.daysFebrile", 0, 365));
+        var avpu = string.IsNullOrWhiteSpace(sc?.Avpu) ? null : Validate.OneOf(sc.Avpu, ClinicalValues.AvpuLevels, "screening.avpu");
+        var mobility = string.IsNullOrWhiteSpace(sc?.Mobility)
+            ? null
+            : Validate.OneOf(sc.Mobility, ClinicalValues.MobilityLevels, "screening.mobility");
+        var symptomFlags = sc?.SymptomFlags ?? [];
+        var unknownFlags = symptomFlags.Keys.Where(k => !FlagProperties.ContainsKey(k)).ToList();
+        if (unknownFlags.Count > 0)
+        {
+            throw ApiException.BadRequest($"Unknown symptom flags: {string.Join(", ", unknownFlags)}", "screening.symptomFlags");
+        }
+
         var symptomIds = symptomInputs.Select(s => s.SymptomId).ToList();
         if (symptomIds.Distinct().Count() != symptomIds.Count)
         {
@@ -55,7 +70,23 @@ public class TriageService(
             throw ApiException.BadRequest($"Unknown symptom IDs: {string.Join(", ", unknown)}", "symptoms");
         }
 
-        // ---- 1. Local model inference, with the rule engine as safety fallback ----
+        // ---- 1. Diagnosis model (runs alongside triage; never fails the request) ----
+        var diagnosisTask = diagnosis.DiagnoseAsync(new DiagnosisRequest(
+            ClinicalValues.AgeInYears(patient.DateOfBirth),
+            patient.Gender,
+            sc?.Pregnant,
+            sc?.RainySeason,
+            daysFebrile,
+            temperature,
+            heartRate,
+            respiratoryRate,
+            Systolic(bloodPressure),
+            oxygenLevel,
+            avpu,
+            mobility,
+            symptomFlags), ct);
+
+        // ---- 2. Local model inference, with the rule engine as safety fallback ----
         var result = await inference.AssessAsync(new InferenceRequest(
             new InferencePatient(
                 ClinicalValues.AgeFrom(patient.DateOfBirth),
@@ -71,7 +102,11 @@ public class TriageService(
                 .ToList(),
             new InferenceVitals(temperature, bloodPressure, heartRate, oxygenLevel, respiratoryRate)), ct);
 
-        // ---- 2. Save: retire the previous current assessment, add the new record and its symptoms ----
+        // The diagnosis model's conditions replace the rule engine's pattern-matched ones when it has any
+        var conditions = await diagnosisTask;
+        if (conditions.Count > 0) result = result with { DifferentialDiagnosis = conditions };
+
+        // ---- 3. Save: retire the previous current assessment, add the new record and its symptoms ----
         var previous = await records.Query(tracking: true)
             .Where(r => r.PatientId == patientId && r.IsCurrent)
             .ToListAsync(ct);
@@ -88,6 +123,11 @@ public class TriageService(
             VitalsHeartRate = heartRate,
             VitalsOxygenLevel = oxygenLevel,
             VitalsRespiratoryRate = respiratoryRate,
+            Pregnant = sc?.Pregnant,
+            RainySeason = sc?.RainySeason,
+            DaysFebrile = daysFebrile,
+            Avpu = avpu,
+            Mobility = mobility,
             AiUrgencyScore = result.UrgencyScore,
             AiTriageLevel = result.TriageLevel,
             AiConfidence = result.Confidence,
@@ -103,6 +143,7 @@ public class TriageService(
                 .Select(s => new RecordSymptom { SymptomId = s.SymptomId, Severity = s.Severity, Duration = s.Duration, Notes = s.Notes })
                 .ToList(),
         };
+        foreach (var (flag, value) in symptomFlags) FlagProperties[flag].SetValue(record, value);
         await records.AddAsync(record, ct);
 
         // One SaveChanges = one transaction, so the old record is only retired if the new one is saved
@@ -125,4 +166,14 @@ public class TriageService(
     }
 
     private static int? ToInt(double? value) => value is null ? null : (int)Math.Round(value.Value);
+
+    /// <summary>Systolic part of a reading already normalised to "sys/dia".</summary>
+    private static int? Systolic(string? bloodPressure) =>
+        bloodPressure is null ? null : int.Parse(bloodPressure[..bloodPressure.IndexOf('/')]);
+
+    // Symptom flag -> PatientRecord property, e.g. abdominal_pain -> AbdominalPain
+    private static readonly Dictionary<string, PropertyInfo> FlagProperties = ClinicalValues.SymptomFlags.ToDictionary(
+        f => f,
+        f => typeof(PatientRecord).GetProperty(string.Concat(f.Split('_').Select(w => char.ToUpperInvariant(w[0]) + w[1..])))
+            ?? throw new InvalidOperationException($"PatientRecord has no property for symptom flag '{f}'"));
 }
