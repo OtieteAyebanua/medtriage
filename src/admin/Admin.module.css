@@ -1,0 +1,187 @@
+/* ========================================================
+   MedTriage AI — Admin console styles
+   Builds on Homescreen.module.css; tokens live in src/index.css.
+   ======================================================== */
+
+.loginBadge,
+.adminBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--info-bg);
+  color: var(--info);
+  border: 1px solid var(--info-border);
+}
+
+.loginBadge {
+  margin-bottom: 0.85rem;
+}
+
+.footerLink {
+  color: var(--accent-strong);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ---------------- Dashboard ---------------- */
+
+.metricsRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.85rem;
+  margin-bottom: 1.5rem;
+}
+
+.metricWarn {
+  border-left: 4px solid var(--warn);
+}
+
+.metricWarn > :nth-child(2) {
+  color: var(--warn);
+}
+
+.filterBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.filterBar .filterSearch {
+  flex: 1 1 280px;
+  margin-bottom: 0;
+}
+
+.filterSelect {
+  width: auto;
+  min-width: 150px;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.84rem;
+}
+
+.rowInactive td {
+  color: var(--text-3);
+}
+
+.statusActive {
+  background: var(--ok-bg);
+  color: var(--ok);
+  border: 1px solid var(--ok-border);
+}
+
+.rowActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  white-space: nowrap;
+}
+
+.confirmText {
+  font-size: 0.92rem;
+  color: var(--text-2);
+  line-height: 1.55;
+}
+
+/* ---------------- Practitioner form ---------------- */
+
+.formSection {
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+  margin: 0.5rem 0 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--surface-sunken);
+}
+
+.formSection:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.formRow3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.passwordRow {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.passwordRow input {
+  flex: 1;
+  min-width: 0;
+}
+
+.attest {
+  display: flex;
+  gap: 0.7rem;
+  align-items: flex-start;
+  padding: 0.9rem 1rem;
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
+  font-size: 0.86rem;
+  color: var(--text-2);
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.attest input {
+  width: 1.05rem;
+  height: 1.05rem;
+  margin-top: 0.15rem;
+  accent-color: var(--accent);
+  flex-shrink: 0;
+}
+
+.attest strong {
+  color: var(--heading);
+}
+
+.attestInvalid {
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+}
+
+.attestError {
+  display: block;
+  margin-top: 0.3rem;
+}
+
+@media (max-width: 960px) {
+  .metricsRow {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .formRow3 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .formRow3 {
+    grid-template-columns: 1fr;
+  }
+  .passwordRow {
+    flex-wrap: wrap;
+  }
+  .passwordRow input {
+    flex-basis: 100%;
+  }
+  .filterSelect {
+    flex: 1;
+  }
+}

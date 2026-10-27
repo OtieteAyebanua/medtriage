@@ -78,6 +78,7 @@ NAMES+=("Random Forest service")
 
 echo "Starting MedTriage development stack:"
 echo "  Frontend:       http://localhost:3000"
+echo "  Admin console:  http://localhost:3000/admin"
 echo "  .NET API:       http://localhost:4000"
 echo "  Random Forest:  http://localhost:8001"
 echo "Press Ctrl+C to stop all services."

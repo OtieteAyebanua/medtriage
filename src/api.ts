@@ -43,6 +43,10 @@ export function errorMessage(err: unknown, fallback = 'Something went wrong. Ple
   return err instanceof Error && err.message ? err.message : fallback;
 }
 
+function isAuthPath(path: string) {
+  return path.startsWith('/api/auth/') || path.startsWith('/api/admin/auth/');
+}
+
 // Debounced so several requests failing together (session expired) only trigger one logout
 let unauthTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -57,7 +61,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     // Auth endpoints answer 401 for "wrong password" / "no session"; only other routes mean the session ended
-    if (res.status === 401 && !path.startsWith('/api/auth/') && !unauthTimer) {
+    if (res.status === 401 && !isAuthPath(path) && !unauthTimer) {
       unauthTimer = setTimeout(() => {
         window.dispatchEvent(new Event(UNAUTHENTICATED_EVENT));
         unauthTimer = null;
@@ -194,4 +198,84 @@ export async function submitReview(recordId: number, input: ReviewInput): Promis
 
 export function getWardReport(days?: number): Promise<WardReport> {
   return request<WardReport>(days ? `/api/reports/ward?days=${days}` : '/api/reports/ward');
+}
+
+/* ---------------- Admin ---------------- */
+// The admin console signs in with a single facility admin password and has its own session cookie,
+// separate from the staff session. A 401 from these routes broadcasts UNAUTHENTICATED_EVENT too.
+
+export type PractitionerPosition = HealthcareWorker['position'];
+
+/** A staff account as the admin console sees it. Never includes the password hash. */
+export interface Practitioner {
+  userId: number;
+  employeeId: string;
+  firstName: string;
+  middleName: string | null;
+  lastName: string;
+  email: string;
+  phone: string | null;
+  gender: string;
+  position: PractitionerPosition;
+  department: string | null;
+  /** Professional registration / licence number, e.g. MDCN or NMCN number */
+  licenseNumber: string | null;
+  /** YYYY-MM-DD */
+  licenseExpiry: string | null;
+  active: boolean;
+  /** When an admin confirmed the practitioner's identity and licence */
+  verifiedAt: string | null;
+  createdAt: string;
+}
+
+export interface PractitionerInput {
+  employeeId: string;
+  firstName: string;
+  middleName?: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  gender: string;
+  position: PractitionerPosition;
+  department?: string;
+  licenseNumber?: string;
+  licenseExpiry?: string;
+  /** Required when creating; when updating, set only to reset it */
+  password?: string;
+}
+
+export async function adminLogin(password: string): Promise<void> {
+  await sendJson('/api/admin/auth/login', 'POST', { password });
+}
+
+/** Whether there is a valid admin session. */
+export async function getAdminSession(): Promise<boolean> {
+  try {
+    return (await request<{ authenticated: boolean }>('/api/admin/auth/session')).authenticated;
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 401) return false;
+    throw err;
+  }
+}
+
+export async function adminLogout(): Promise<void> {
+  await request('/api/admin/auth/logout', { method: 'POST' }).catch(() => undefined);
+}
+
+export async function listPractitioners(): Promise<Practitioner[]> {
+  return (await request<{ practitioners: Practitioner[] }>('/api/admin/practitioners')).practitioners;
+}
+
+export async function createPractitioner(input: PractitionerInput): Promise<Practitioner> {
+  return (await sendJson<{ practitioner: Practitioner }>('/api/admin/practitioners', 'POST', input)).practitioner;
+}
+
+export async function updatePractitioner(userId: number, input: PractitionerInput): Promise<Practitioner> {
+  return (await sendJson<{ practitioner: Practitioner }>(`/api/admin/practitioners/${userId}`, 'PUT', input)).practitioner;
+}
+
+/** Deactivated practitioners can't sign in; their past records are kept. */
+export async function setPractitionerActive(userId: number, active: boolean): Promise<Practitioner> {
+  return (await sendJson<{ practitioner: Practitioner }>(`/api/admin/practitioners/${userId}/status`, 'PUT', { active }))
+    .practitioner;
 }

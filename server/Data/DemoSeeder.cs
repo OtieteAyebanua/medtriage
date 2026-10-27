@@ -33,7 +33,9 @@ public static class DemoSeeder
             var worker = new HealthcareWorker
             {
                 EmployeeId = w.EmployeeId, FirstName = w.First, MiddleName = w.Middle, LastName = w.Last,
-                Gender = w.Gender, Email = w.Email, Position = w.Position, CreatedAt = DaysAgo(60),
+                Gender = w.Gender, Email = w.Email, Position = w.Position, Department = w.Department,
+                LicenseNumber = w.License, LicenseExpiry = w.LicenseExpiry is null ? null : DateOnly.Parse(w.LicenseExpiry),
+                IsActive = true, VerifiedAt = DaysAgo(60), CreatedAt = DaysAgo(60),
             };
             worker.PasswordHash = hasher.HashPassword(worker, password);
             return worker;
@@ -177,18 +179,20 @@ public static class DemoSeeder
 
     /* ---------------- Data ---------------- */
 
-    private record DemoWorker(string EmployeeId, string First, string? Middle, string Last, string Gender, string Email, string Position);
+    private record DemoWorker(
+        string EmployeeId, string First, string? Middle, string Last, string Gender, string Email, string Position,
+        string Department, string? License, string? LicenseExpiry);
 
     private static readonly DemoWorker[] Workers =
     [
-        new("HW-DOC-001", "Amina", "Fatima", "Bello", "Female", "amina.bello@hospital.lan", "doctor"),
-        new("HW-NUR-002", "Grace", "Chioma", "Okafor", "Female", "grace.okafor@hospital.lan", "nurse"),
-        new("HW-NUR-003", "Ibrahim", "Musa", "Danladi", "Male", "ibrahim.danladi@hospital.lan", "nurse"),
-        new("HW-LAB-004", "Samuel", "Olu", "Adeyemi", "Male", "samuel.adeyemi@hospital.lan", "lab_tech"),
-        new("HW-ADM-005", "Khadija", "Zainab", "Umar", "Female", "admin@hospital.lan", "admin"),
-        new("HW-DOC-006", "Chukwuemeka", null, "Obi", "Male", "emeka.obi@hospital.lan", "doctor"),
-        new("HW-NUR-007", "Halima", "Abubakar", "Sadiq", "Female", "halima.sadiq@hospital.lan", "nurse"),
-        new("HW-PHA-008", "Tunde", "Olawale", "Bakare", "Male", "tunde.bakare@hospital.lan", "pharmacist"),
+        new("HW-DOC-001", "Amina", "Fatima", "Bello", "Female", "amina.bello@hospital.lan", "doctor", "Emergency", "MDCN/R/48213", "2028-06-30"),
+        new("HW-NUR-002", "Grace", "Chioma", "Okafor", "Female", "grace.okafor@hospital.lan", "nurse", "Emergency", "NMCN/RN/220417", "2027-12-31"),
+        new("HW-NUR-003", "Ibrahim", "Musa", "Danladi", "Male", "ibrahim.danladi@hospital.lan", "nurse", "Outpatients", "NMCN/RN/198822", "2028-03-31"),
+        new("HW-LAB-004", "Samuel", "Olu", "Adeyemi", "Male", "samuel.adeyemi@hospital.lan", "lab_tech", "Laboratory", "MLSCN/T/30551", "2027-09-30"),
+        new("HW-ADM-005", "Khadija", "Zainab", "Umar", "Female", "admin@hospital.lan", "admin", "Records", null, null),
+        new("HW-DOC-006", "Chukwuemeka", null, "Obi", "Male", "emeka.obi@hospital.lan", "doctor", "Paediatrics", "MDCN/R/51908", "2028-01-31"),
+        new("HW-NUR-007", "Halima", "Abubakar", "Sadiq", "Female", "halima.sadiq@hospital.lan", "nurse", "Maternity", "NMCN/RM/240113", "2027-11-30"),
+        new("HW-PHA-008", "Tunde", "Olawale", "Bakare", "Male", "tunde.bakare@hospital.lan", "pharmacist", "Pharmacy", "PCN/P/77120", "2028-08-31"),
     ];
 
     private record DemoSymptom(string Name, string Category, int Severity, string Description, string Related, string Synonyms, string FollowUp);

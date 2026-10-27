@@ -1,11 +1,9 @@
-using System.Security.Cryptography;
-using System.Text;
 using MedTriage.Server.Common;
+using MedTriage.Server.Common.Auth;
 using MedTriage.Server.Dtos;
 using MedTriage.Server.Models;
 using MedTriage.Server.Repositories;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 
 namespace MedTriage.Server.Services.Auth;
@@ -38,7 +36,8 @@ public class AuthService(
             w => w.EmployeeId.ToUpper() == upper || w.Email.ToUpper() == upper, tracking: true, ct: ct);
 
         var verdict = hasher.VerifyHashedPassword(worker!, worker?.PasswordHash ?? DummyHash.Value, password);
-        if (worker is null || verdict == PasswordVerificationResult.Failed)
+        // Deactivated accounts get the same answer as a wrong password
+        if (worker is null || verdict == PasswordVerificationResult.Failed || !worker.IsActive)
         {
             throw new ApiException(StatusCodes.Status401Unauthorized, InvalidCredentials);
         }
@@ -52,9 +51,9 @@ public class AuthService(
         var now = DateTime.UtcNow;
         sessions.RemoveRange(await sessions.ListAsync(s => s.UserId == worker.UserId && s.ExpiresAt < now, ct));
 
-        var token = WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(32));
+        var token = SessionTokens.New();
         var expiresAt = now.Add(SessionLifetime);
-        await sessions.AddAsync(new Session { Token = HashToken(token), UserId = worker.UserId, ExpiresAt = expiresAt, CreatedAt = now }, ct);
+        await sessions.AddAsync(new Session { Token = SessionTokens.Hash(token), UserId = worker.UserId, ExpiresAt = expiresAt, CreatedAt = now }, ct);
         await sessions.SaveChangesAsync(ct);
 
         return new LoginResult(worker, token, expiresAt);
@@ -64,13 +63,13 @@ public class AuthService(
     {
         if (string.IsNullOrEmpty(token)) return null;
 
-        var hash = HashToken(token);
+        var hash = SessionTokens.Hash(token);
         var session = await sessions.Query(tracking: true)
             .Include(s => s.Worker)
             .FirstOrDefaultAsync(s => s.Token == hash, ct);
         if (session is null) return null;
 
-        if (session.ExpiresAt < DateTime.UtcNow)
+        if (session.ExpiresAt < DateTime.UtcNow || !session.Worker.IsActive)
         {
             sessions.Remove(session);
             await sessions.SaveChangesAsync(ct);
@@ -87,13 +86,11 @@ public class AuthService(
     {
         if (string.IsNullOrEmpty(token)) return;
 
-        var hash = HashToken(token);
+        var hash = SessionTokens.Hash(token);
         var session = await sessions.FirstOrDefaultAsync(s => s.Token == hash, tracking: true, ct: ct);
         if (session is null) return;
 
         sessions.Remove(session);
         await sessions.SaveChangesAsync(ct);
     }
-
-    private static string HashToken(string token) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 }

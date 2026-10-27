@@ -1,9 +1,17 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import Auth, { HealthcareWorker } from '@/auth';
 import Homescreen from '@/Homescreen';
+import AdminApp from '@/admin';
 import { getSession, logout, UNAUTHENTICATED_EVENT } from '@/api';
 
+// /admin is a separate console with its own sign-in; everything else is the staff app
+const isAdminRoute = /^\/admin(\/|$)/.test(window.location.pathname);
+
 export default function App() {
+  return isAdminRoute ? <AdminApp /> : <StaffApp />;
+}
+
+function StaffApp() {
   const [currentUser, setCurrentUser] = useState<HealthcareWorker | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
 

@@ -1,10 +1,12 @@
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using System.Text.Json.Serialization.Metadata;
 using MedTriage.Server.Common;
 using MedTriage.Server.Common.Auth;
 using MedTriage.Server.Data;
 using MedTriage.Server.Models;
 using MedTriage.Server.Repositories;
+using MedTriage.Server.Services.Admin;
 using MedTriage.Server.Services.Auth;
 using MedTriage.Server.Services.Patients;
 using MedTriage.Server.Services.Records;
@@ -54,7 +56,9 @@ builder.Services.AddScoped(typeof(IDocumentRepository<>), typeof(DocumentReposit
 // ---- Auth: session cookie, every endpoint requires sign-in unless marked [AllowAnonymous] ----
 builder.Services
     .AddAuthentication(SessionAuthentication.Scheme)
-    .AddScheme<AuthenticationSchemeOptions, SessionAuthenticationHandler>(SessionAuthentication.Scheme, null);
+    .AddScheme<AuthenticationSchemeOptions, SessionAuthenticationHandler>(SessionAuthentication.Scheme, null)
+    // The /admin console has its own cookie; its controllers opt in to this scheme explicitly
+    .AddScheme<AuthenticationSchemeOptions, AdminSessionAuthenticationHandler>(AdminAuthentication.Scheme, null);
 builder.Services.AddAuthorizationBuilder()
     .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
 builder.Services.AddSingleton<IPasswordHasher<HealthcareWorker>, PasswordHasher<HealthcareWorker>>();
@@ -66,6 +70,20 @@ builder.Services.AddScoped<ISymptomService, SymptomService>();
 builder.Services.AddScoped<ITriageService, TriageService>();
 builder.Services.AddScoped<IRecordService, RecordService>();
 builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IAdminAuthService, AdminAuthService>();
+builder.Services.AddScoped<IPractitionerService, PractitionerService>();
+builder.Services.Configure<AdminOptions>(builder.Configuration.GetSection("Admin"));
+
+// The admin password guards account creation, so slow down guessing: 5 attempts per minute per address
+builder.Services.AddRateLimiter(o =>
+{
+    o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    o.OnRejected = (context, ct) => new ValueTask(context.HttpContext.Response.WriteAsJsonAsync(
+        new ErrorResponse("Too many attempts. Wait a minute and try again.", Code: "RATE_LIMITED"), ct));
+    o.AddPolicy(AdminAuthentication.LoginRateLimit, http => RateLimitPartition.GetFixedWindowLimiter(
+        http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 5, Window = TimeSpan.FromMinutes(1) }));
+});
 
 builder.Services.Configure<PhotoStorageOptions>(builder.Configuration.GetSection("Uploads"));
 builder.Services.AddSingleton<IPhotoStorage, PhotoStorage>();
@@ -121,6 +139,7 @@ if (hasFrontend)
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.MapControllers();
 app.MapGet("/api/health", () => new { app = "MedTriage", status = "ok" }).AllowAnonymous();

@@ -15,6 +15,19 @@ public class HealthcareWorker
     /// <summary>doctor, nurse, lab_tech, pharmacist or admin.</summary>
     public string Position { get; set; } = null!;
 
+    public string? Phone { get; set; }
+    public string? Department { get; set; }
+
+    /// <summary>Professional registration / licence number (MDCN, NMCN, …). Not required for admin staff.</summary>
+    public string? LicenseNumber { get; set; }
+    public DateOnly? LicenseExpiry { get; set; }
+
+    /// <summary>Deactivated workers can't sign in. Set from the admin console.</summary>
+    public bool IsActive { get; set; } = true;
+
+    /// <summary>When an admin confirmed the worker's identity and licence.</summary>
+    public DateTime? VerifiedAt { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public ICollection<Session> Sessions { get; set; } = new List<Session>();

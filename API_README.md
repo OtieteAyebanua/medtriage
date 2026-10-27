@@ -26,6 +26,13 @@ The original Next.js implementation of all these routes is still in git history 
 - [x] 12. `GET /api/records/queue`
 - [x] 13. `PUT /api/records/:id/review`
 - [x] 14. `GET /api/reports/ward`
+- [x] 15. `POST /api/admin/auth/login`
+- [x] 16. `GET /api/admin/auth/session`
+- [x] 17. `POST /api/admin/auth/logout`
+- [x] 18. `GET /api/admin/practitioners`
+- [x] 19. `POST /api/admin/practitioners`
+- [x] 20. `PUT /api/admin/practitioners/:id`
+- [x] 21. `PUT /api/admin/practitioners/:id/status`
 
 ### Frontend wiring
 
@@ -41,6 +48,7 @@ See [Frontend wiring](#frontend-wiring) for details on each step.
 - [x] Run triage (#11)
 - [x] Doctor review (#13)
 - [x] Delete `mockData.ts`, the `localStorage` data caches and the fake login fallback
+- [x] Admin console at `/admin` (#15–21). In development the admin password is `admin123` (`server/appsettings.Development.json`)
 
 ---
 
@@ -616,6 +624,117 @@ Response `200`:
 | `review_stats.agreement_rate` | `round(accepted / reviewed × 100)` as a **whole-number percent** (e.g. `88`), or `null` when nothing has been reviewed yet |
 | `status_distribution` | Count per record `status` |
 | `recent_records` | The 10 newest records, with `patient` and `recorder` names |
+
+---
+
+### Admin
+
+The admin console at `/admin` ([`src/admin/`](src/admin/)) is where a facility administrator adds **verified** practitioners: people whose identity and professional licence they have checked. Only accounts created here can sign in to the staff app.
+
+**Admin auth is separate from staff auth.** It uses one facility admin password, `Admin:Password` in the server's appsettings (`admin123` in development; no default in production, where the login answers `503 ADMIN_NOT_CONFIGURED` until one is set), and its own httpOnly cookie, `medtriage_admin` (`SameSite=Strict`), valid for 8 hours. A staff session never grants admin access, and an admin session never grants staff access. `#15` is the only admin route that allows anonymous access. It is rate-limited to 5 attempts per minute per IP address (`429 RATE_LIMITED`).
+
+Admin routes answer `401 { "code": "UNAUTHENTICATED" }` when the admin session is missing or expired; the console then returns to the password screen.
+
+**Practitioner data model.** Add these columns to `healthcare_workers`: `phone?`, `department?`, `license_number?`, `license_expiry?` (date), `is_active` (default `true`), `verified_at?`. Existing rows get `is_active = true`.
+
+**Effect on staff sign-in (#1, #2).** A worker with `is_active = false` can't sign in: answer `401` with the same "Invalid employee ID or password" message. Deactivating an account also deletes its `sessions` rows, so anyone signed in is signed out.
+
+#### 15. `POST /api/admin/auth/login`
+
+**Auth:** none · **Used by:** [`src/admin/AdminLogin.tsx`](src/admin/AdminLogin.tsx)
+
+Request: `{ "password": "…" }`
+
+- `200`: `{ "success": true }`, and sets the `medtriage_admin` cookie.
+- `400`: `password` is missing.
+- `401`: `{ "error": "Incorrect admin password" }`.
+
+#### 16. `GET /api/admin/auth/session`
+
+- `200`: `{ "authenticated": true }`
+- `401`: `{ "authenticated": false, "error": "Session expired" }`. Also clear the cookie.
+
+#### 17. `POST /api/admin/auth/logout`
+
+Deletes the admin session and clears the cookie. Always `200 { "success": true }`.
+
+#### 18. `GET /api/admin/practitioners`
+
+**Auth:** admin · Every worker, newest first, including deactivated ones. camelCase, like the auth `worker` object:
+
+```json
+{
+  "practitioners": [
+    {
+      "userId": 9,
+      "employeeId": "HW-NUR-009",
+      "firstName": "Ngozi",
+      "middleName": null,
+      "lastName": "Eze",
+      "email": "ngozi.eze@hospital.lan",
+      "phone": "+234 803 555 0142",
+      "gender": "Female",
+      "position": "nurse",
+      "department": "Emergency",
+      "licenseNumber": "NMCN/RN/260981",
+      "licenseExpiry": "2028-03-31",
+      "active": true,
+      "verifiedAt": "2026-10-27T07:32:10.000Z",
+      "createdAt": "2026-10-27T07:32:10.000Z"
+    }
+  ]
+}
+```
+
+Never return `password_hash`.
+
+#### 19. `POST /api/admin/practitioners`
+
+**Auth:** admin · **Used by:** [`src/admin/PractitionerModal.tsx`](src/admin/PractitionerModal.tsx)
+
+Request:
+
+```json
+{
+  "employeeId": "HW-NUR-009",
+  "firstName": "Ngozi",
+  "middleName": "Adaeze",
+  "lastName": "Eze",
+  "email": "ngozi.eze@hospital.lan",
+  "phone": "+234 803 555 0142",
+  "gender": "Female",
+  "position": "nurse",
+  "department": "Emergency",
+  "licenseNumber": "NMCN/RN/260981",
+  "licenseExpiry": "2028-03-31",
+  "password": "temporary-password"
+}
+```
+
+`middleName`, `phone`, `department` are optional. `licenseNumber` and `licenseExpiry` are required unless `position` is `admin`. The UI only submits once the admin ticks "I have verified this practitioner", so set `verified_at` to now.
+
+Validate (`400` with `field`):
+- names, `email` and `employeeId` present; `email` well-formed; `position` and `gender` from the enums.
+- `licenseExpiry` is `YYYY-MM-DD` and not in the past.
+- `password` is at least 8 characters. Hash it with the same password hasher as the demo accounts.
+
+Store `employeeId` upper-cased and `email` lower-cased. Answer `409` with `field` when `employeeId` or `email` is already used (case-insensitive).
+
+Response `201`: `{ "practitioner": { …same shape as #18… } }`
+
+#### 20. `PUT /api/admin/practitioners/:id`
+
+**Auth:** admin · Same body and validation as #19, except `password` is optional: when present, it resets the password and deletes the worker's existing sessions. Leave `verified_at` unchanged.
+
+Response `200`: `{ "practitioner": { … } }`. `404` if no such worker.
+
+#### 21. `PUT /api/admin/practitioners/:id/status`
+
+**Auth:** admin · Request: `{ "active": false }`
+
+Sets `is_active`. When deactivating, also delete the worker's sessions. Past records keep pointing at the worker.
+
+Response `200`: `{ "practitioner": { … } }`. `404` if no such worker.
 
 ---
 

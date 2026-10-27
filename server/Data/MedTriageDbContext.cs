@@ -10,6 +10,7 @@ public class MedTriageDbContext(DbContextOptions<MedTriageDbContext> options) : 
 {
     public DbSet<HealthcareWorker> HealthcareWorkers => Set<HealthcareWorker>();
     public DbSet<Session> Sessions => Set<Session>();
+    public DbSet<AdminSession> AdminSessions => Set<AdminSession>();
     public DbSet<Patient> Patients => Set<Patient>();
     public DbSet<PatientRecord> PatientRecords => Set<PatientRecord>();
     public DbSet<Symptom> Symptoms => Set<Symptom>();
@@ -29,9 +30,21 @@ public class MedTriageDbContext(DbContextOptions<MedTriageDbContext> options) : 
             e.Property(w => w.Gender).HasMaxLength(10);
             e.Property(w => w.Email).HasMaxLength(100);
             e.Property(w => w.Position).HasMaxLength(20);
+            e.Property(w => w.Phone).HasMaxLength(30);
+            e.Property(w => w.Department).HasMaxLength(100);
+            e.Property(w => w.LicenseNumber).HasMaxLength(50);
             e.Property(w => w.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
             e.HasIndex(w => w.EmployeeId).IsUnique();
             e.HasIndex(w => w.Email).IsUnique();
+        });
+
+        model.Entity<AdminSession>(e =>
+        {
+            e.ToTable("admin_sessions");
+            e.HasKey(s => s.Id);
+            e.Property(s => s.Token).HasMaxLength(100);
+            e.Property(s => s.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            e.HasIndex(s => s.Token).IsUnique();
         });
 
         model.Entity<Session>(e =>
@@ -157,7 +170,7 @@ public class MedTriageDbContext(DbContextOptions<MedTriageDbContext> options) : 
 
                 // SQLite has no timezone, so timestamps would read back as Kind=Unspecified and serialize
                 // without "Z"; the browser would then parse them as local time. Everything is stored in UTC.
-                if (property.ClrType == typeof(DateTime))
+                if ((Nullable.GetUnderlyingType(property.ClrType) ?? property.ClrType) == typeof(DateTime))
                 {
                     property.SetValueConverter(UtcDateTime);
                 }
