@@ -1056,56 +1056,6 @@ function ResultView({
         </div>
       </div>
 
-      <div className={styles.resultSection}>
-        <SectionLabel right={engine && <span className={styles.tableMuted}>{engineLabel(engine)}</span>}>Why this level</SectionLabel>
-        <p className={styles.reasoningText}>{result.reasoning}</p>
-      </div>
-
-      {engine?.level_probabilities && (
-        <div className={styles.resultSection}>
-          <SectionLabel>How likely each level is</SectionLabel>
-          <div className={styles.levelProbList}>
-            {LEVEL_LIST.map((m) => {
-              const p = engine.level_probabilities[String(m.level)] ?? 0;
-              return (
-                <div key={m.level} className={`${styles.levelProbRow} ${levelClass(m.level)} ${m.level === level ? styles.levelProbRowActive : ''}`}>
-                  <span className={styles.levelProbName}>
-                    Level {m.level} · {m.label}
-                  </span>
-                  <span className={styles.levelProbBar} aria-hidden="true">
-                    <span className={styles.levelProbFill} style={{ width: `${Math.round(p * 100)}%` }} />
-                  </span>
-                  <span className={styles.levelProbValue}>{percent(p)}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {diffs.length > 0 && (
-        <div className={styles.resultSection}>
-          <SectionLabel>Possible conditions</SectionLabel>
-          <div className={styles.diffList}>
-            {diffs.map((d, idx) => {
-              const pct = typeof d.probability === 'number' ? Math.round(d.probability <= 1 ? d.probability * 100 : d.probability) : 0;
-              return (
-                <div key={idx} className={styles.diffItem}>
-                  <div className={styles.diffTop}>
-                    <span className={styles.diffName}>{d.condition}</span>
-                    <span className={styles.diffProb}>{percent(d.probability)}</span>
-                  </div>
-                  <div className={styles.diffBar} aria-hidden="true">
-                    <div className={styles.diffBarFill} style={{ width: `${Math.min(100, Math.max(0, pct))}%` }} />
-                  </div>
-                  <div className={styles.diffRationale}>{d.rationale}</div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       <Notice kind="success">
         {recordId ? (
           <>
